@@ -2,6 +2,7 @@ import lvgl as lv
 
 class Numpad():
     def __init__(self, container, button_maker, font):
+        self.font = font
         self.max_digits = 9
         self.make_button = button_maker
         overlay = lv.obj(container)
@@ -15,10 +16,27 @@ class Numpad():
         background.set_size(540, 330)
         background.set_scrollbar_mode(lv.SCROLLBAR_MODE.OFF)
         background.set_style_bg_color(lv.color_hex(0xffc0c0), lv.PART.MAIN | lv.STATE.DEFAULT)
+        cols = [100, 100, 100, 36, 110, lv.GRID_TEMPLATE.LAST]
+        rows = [56, 0, 48, 48, 48, 48, lv.GRID_TEMPLATE.LAST]
+
+        background.set_grid_dsc_array(cols, rows)
         self.background = background
-        self.make_buttons(0, -10)
-        self.display = self.make_display(140, -10, 200, 60, font)
+        self.make_buttons()
+        self.display = self.make_display(1, 0)
+        self.axis_label = self.make_axis_label(3, 0)
         self.hide()
+
+    def make_basic_button(self, text, col, row, color):
+        obj = lv.obj(self.background)
+        obj.set_grid_cell(lv.GRID_ALIGN.STRETCH, col, 1, lv.GRID_ALIGN.STRETCH, row, 1)
+        obj.set_scrollbar_mode(lv.SCROLLBAR_MODE.OFF)
+
+        label = lv.label(obj)
+        label.set_text(text)
+        label.set_style_text_font(self.font, lv.PART.MAIN | lv.STATE.DEFAULT)
+        label.center()
+        label.set_style_text_color(color, 0)
+        return obj
 
     def show(self):
         self.overlay.clear_flag(lv.obj.FLAG.HIDDEN)
@@ -26,56 +44,40 @@ class Numpad():
     def hide(self):
         self.overlay.add_flag(lv.obj.FLAG.HIDDEN)
 
-    def skip(self):
-        self.x += 116
+    def make_axis_label(self, col, row):
+        obj = self.make_basic_button("", col, row, lv.color_black())
+        obj.set_style_bg_opa(0, lv.PART.MAIN | lv.STATE.DEFAULT)
+        obj.set_style_border_width(0, lv.PART.MAIN | lv.STATE.DEFAULT)
+        return obj
 
-    def next_row(self, yinc=56):
-        self.x = self.button_x
-        self.y += yinc
+    def button(self, text, col, row, color=lv.color_black()):
+        self.make_basic_button(text, col, row, color).add_event_cb(self.button_action, lv.EVENT.ALL, None)
 
-    def buttonator(self, text):
-        self.make_button(text, self.background, self.x, self.y, 110, 46, 28, lambda e: self.button_action(e))
-        self.skip()
+    def make_buttons(self):
+        red = lv.palette_darken(lv.PALETTE.RED, 3)
+        green = lv.palette_darken(lv.PALETTE.GREEN, 3)
+        self.button("Goto", 0, 0, red)
+        self.button("Set", 4, 0, red)
 
-    def make_buttons(self, x, y):
-        self.button_x = x
-        self.x = self.button_x
-        self.y = y
-        extra_x = 36
+        self.button("1", 0, 2)
+        self.button("2", 1, 2)
+        self.button("3", 2, 2)
+        self.button(lv.SYMBOL.BACKSPACE, 4, 2)
 
-        self.buttonator("Goto")
-        self.skip()
-        self.skip()
-        self.x += extra_x
-        self.buttonator("Set")
-        self.next_row(80)
+        self.button("4", 0, 3)
+        self.button("5", 1, 3)
+        self.button("6", 2, 3)
+        self.button("Clear", 4, 3)
 
-        self.buttonator("1")
-        self.buttonator("2")
-        self.buttonator("3")
-        self.x += extra_x
-        self.buttonator(lv.SYMBOL.BACKSPACE)
-        self.next_row()
+        self.button("7", 0, 4)
+        self.button("8", 1, 4)
+        self.button("9", 2, 4)
+        self.button("Get", 4, 4, green)
 
-        self.buttonator("4")
-        self.buttonator("5")
-        self.buttonator("6")
-        self.x += extra_x
-        self.buttonator("C")
-        self.next_row()
-
-        self.buttonator("7")
-        self.buttonator("8")
-        self.buttonator("9")
-        self.x += extra_x
-        self.buttonator("Get")
-        self.next_row()
-
-        self.buttonator("+-")
-        self.buttonator("0")
-        self.buttonator(".")
-        self.x += extra_x
-        self.buttonator("Cancel")
+        self.button("+-", 0, 5)
+        self.button("0", 1, 5)
+        self.button(".", 2, 5)
+        self.button("Cancel", 4, 5, red)
         
     def button_action(self, e):
         if (e.get_code() != lv.EVENT.PRESSED):
@@ -118,28 +120,22 @@ class Numpad():
         elif text == "Cancel":
             self.hide()
 
-    def make_display(self, x, y, w, h, font):
+    def make_display(self, col, row):
         ta = lv.textarea(self.background)
         ta.set_text("0")
-        # ta.set_max_length(10)
-        # ta.set_one_line(True)
-        # ta.set_width(180)
-        ta.set_size(w, h)
-        # ta.set_pos((800-180)//2, 131)
-        #ta.set_pos((600 -180)//2, 0)
-        ta.set_pos(x, y)
-        # ta.set_size(180,50)
         ta.set_style_text_align(lv.TEXT_ALIGN.CENTER, lv.PART.MAIN | lv.STATE.DEFAULT)
         ta.set_scrollbar_mode(lv.SCROLLBAR_MODE.OFF)
-        ta.set_style_text_font(font, lv.PART.MAIN | lv.STATE.DEFAULT)
+        ta.set_style_text_font(self.font, lv.PART.MAIN | lv.STATE.DEFAULT)
         ta.set_style_bg_color(lv.color_hex(0xe0e0ff), lv.PART.MAIN | lv.STATE.DEFAULT)
         ta.set_style_radius(5, lv.PART.MAIN | lv.STATE.DEFAULT)
         ta.set_style_border_width(3, lv.PART.MAIN | lv.STATE.DEFAULT)
         ta.set_style_border_color(lv.color_hex(0x0), lv.PART.MAIN | lv.STATE.DEFAULT)
+        ta.set_grid_cell(lv.GRID_ALIGN.STRETCH, col, 2, lv.GRID_ALIGN.STRETCH, row, 1)
         return ta
 
     def attach(self, dro, max_digits=255):
         self.dro = dro
+        self.axis_label.get_child(0).set_text(dro.axis)
         self.display.set_text("0")
         self.max_digits = max_digits
         self.show()
