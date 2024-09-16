@@ -26,10 +26,15 @@ class Numpad():
         self.axis_label = self.make_axis_label(3, 0)
         self.hide()
 
-    def make_basic_button(self, text, col, row, color):
+    def make_basic_button(self, text, col, row, color, cb=None):
         obj = lv.obj(self.background)
         obj.set_grid_cell(lv.GRID_ALIGN.STRETCH, col, 1, lv.GRID_ALIGN.STRETCH, row, 1)
         obj.set_scrollbar_mode(lv.SCROLLBAR_MODE.OFF)
+        if cb:
+            obj.add_event_cb(cb, lv.EVENT.CLICKED, None)
+        else:
+            obj.set_style_bg_opa(0, lv.PART.MAIN | lv.STATE.DEFAULT)
+            obj.set_style_border_width(0, lv.PART.MAIN | lv.STATE.DEFAULT)
 
         label = lv.label(obj)
         label.set_text(text)
@@ -46,12 +51,10 @@ class Numpad():
 
     def make_axis_label(self, col, row):
         obj = self.make_basic_button("", col, row, lv.color_black())
-        obj.set_style_bg_opa(0, lv.PART.MAIN | lv.STATE.DEFAULT)
-        obj.set_style_border_width(0, lv.PART.MAIN | lv.STATE.DEFAULT)
         return obj
 
     def button(self, text, col, row, color=lv.color_black()):
-        self.make_basic_button(text, col, row, color).add_event_cb(self.button_action, lv.EVENT.ALL, None)
+        self.make_basic_button(text, col, row, color, self.button_action)
 
     def make_buttons(self):
         red = lv.palette_darken(lv.PALETTE.RED, 3)
@@ -80,8 +83,6 @@ class Numpad():
         self.button("Cancel", 4, 5, red)
         
     def button_action(self, e):
-        if (e.get_code() != lv.EVENT.PRESSED):
-            return
         obj=e.get_target() 
         label = obj.get_child(0)
         text = label.get_text()
