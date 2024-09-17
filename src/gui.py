@@ -421,8 +421,9 @@ class DRO:
     def __init__(self, axis, x, y, w, h):
         make_label(dro_area, x, y, 32, h, axis, f28)
         self.button = basic_button(dro_area, x+30, y, w, h, 1, f28)
-        self.label = interior_text(self.button, "0.00")
+        self.label = interior_text(self.button, "0.000")
         self.axis = axis
+        self.bg_color = self.button.get_style_bg_color(0)
         self.button.add_event_cb(self.on_click, lv.EVENT.CLICKED, None)
     def set(self, value):
         self.label.set_text(format_dro(self.axis, value))
@@ -440,6 +441,10 @@ class DRO:
         pass
     def on_click(self, e):
         np.attach(self, 9)
+    def highlight(self):
+        self.button.set_style_bg_color(lv.color_hex(0xe0e0ff), 0)
+    def lowlight(self):
+        self.button.set_style_bg_color(self.bg_color, 0)
 
 dro = []
 dro.append(DRO('X', 96, 10, 140, 45))

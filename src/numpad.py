@@ -23,7 +23,7 @@ class Numpad():
         self.background = background
         self.make_buttons()
         self.display = self.make_display(1, 0)
-        self.axis_label = self.make_axis_label(3, 0)
+        # self.axis_label = self.make_axis_label(3, 5)
         self.hide()
 
     def make_basic_button(self, text, col, row, color, cb=None):
@@ -60,12 +60,12 @@ class Numpad():
         red = lv.palette_darken(lv.PALETTE.RED, 3)
         green = lv.palette_darken(lv.PALETTE.GREEN, 3)
         self.button("Goto", 0, 0, red)
+        self.button(lv.SYMBOL.HOME, 3, 0, red)
         self.button("Set", 4, 0, red)
 
         self.button("1", 0, 2)
         self.button("2", 1, 2)
         self.button("3", 2, 2)
-        self.button(lv.SYMBOL.HOME, 3, 2)
         self.button(lv.SYMBOL.BACKSPACE, 4, 2)
 
         self.button("4", 0, 3)
@@ -92,9 +92,14 @@ class Numpad():
 
         current = self.display.get_text()
         self.display.add_state(lv.STATE.FOCUSED) 
+        print(self.display.get_cursor_pos())
         if text.isdigit():
             if len(current) < self.max_digits:
-                if current == "0":
+                # The check for cursor_pos == 1 handles the situation
+                # where the user has moved the cursor to the left
+                # of the zero (so cursor_pos == 0), where the likely
+                # intent is to insert a digit before the 0
+                if current == "0" and self.display.get_cursor_pos() == 1:
                     self.display.set_text(text)
                 else:
                     self.display.add_text(text)
@@ -120,17 +125,17 @@ class Numpad():
                 self.display.set_text("-" + current)
         elif text == "Set":
             self.dro.set_wco(current)
-            self.hide()
+            self.detach()
         elif text == "Goto":
             self.dro.goto(current)
-            self.hide()
+            self.detach()
         elif text == "Get":
             self.display.set_text(self.dro.get())
         elif text == "Cancel":
-            self.hide()
+            self.detach()
         elif text == lv.SYMBOL.HOME:
             self.dro.home()
-            self.hide()
+            self.detach()
 
     def make_display(self, col, row):
         ta = lv.textarea(self.background)
@@ -147,8 +152,12 @@ class Numpad():
 
     def attach(self, dro, max_digits=255):
         self.dro = dro
-        self.axis_label.get_child(0).set_text(dro.axis)
+        #self.axis_label.get_child(0).set_text(dro.axis)
         self.display.set_text("0")
         self.max_digits = max_digits
         self.display.add_state(lv.STATE.FOCUSED) 
+        self.dro.highlight()
         self.show()
+    def detach(self):
+        self.dro.lowlight()
+        self.hide()
