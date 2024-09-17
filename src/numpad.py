@@ -8,15 +8,15 @@ class Numpad():
         overlay = lv.obj(container)
         overlay.set_pos(0, 0)
         overlay.set_size(container.get_width(), container.get_height())
-        overlay.set_style_bg_opa(0, lv.PART.MAIN | lv.STATE.DEFAULT)
+        overlay.set_style_bg_opa(0, 0)
         overlay.set_scrollbar_mode(lv.SCROLLBAR_MODE.OFF)
         self.overlay = overlay
         background = lv.obj(overlay)
         background.set_pos(100, 114)
-        background.set_size(540, 330)
+        background.set_size(600, 330)
         background.set_scrollbar_mode(lv.SCROLLBAR_MODE.OFF)
-        background.set_style_bg_color(lv.color_hex(0xffc0c0), lv.PART.MAIN | lv.STATE.DEFAULT)
-        cols = [100, 100, 100, 36, 110, lv.GRID_TEMPLATE.LAST]
+        background.set_style_bg_color(lv.color_hex(0xffc0c0), 0)
+        cols = [100, 100, 100, 100, 110, lv.GRID_TEMPLATE.LAST]
         rows = [56, 0, 48, 48, 48, 48, lv.GRID_TEMPLATE.LAST]
 
         background.set_grid_dsc_array(cols, rows)
@@ -33,12 +33,12 @@ class Numpad():
         if cb:
             obj.add_event_cb(cb, lv.EVENT.CLICKED, None)
         else:
-            obj.set_style_bg_opa(0, lv.PART.MAIN | lv.STATE.DEFAULT)
-            obj.set_style_border_width(0, lv.PART.MAIN | lv.STATE.DEFAULT)
+            obj.set_style_bg_opa(0, 0)
+            obj.set_style_border_width(0, 0)
 
         label = lv.label(obj)
         label.set_text(text)
-        label.set_style_text_font(self.font, lv.PART.MAIN | lv.STATE.DEFAULT)
+        label.set_style_text_font(self.font, 0)
         label.center()
         label.set_style_text_color(color, 0)
         return obj
@@ -65,6 +65,7 @@ class Numpad():
         self.button("1", 0, 2)
         self.button("2", 1, 2)
         self.button("3", 2, 2)
+        self.button(lv.SYMBOL.HOME, 3, 2)
         self.button(lv.SYMBOL.BACKSPACE, 4, 2)
 
         self.button("4", 0, 3)
@@ -120,17 +121,20 @@ class Numpad():
             self.display.set_text(self.dro.get())
         elif text == "Cancel":
             self.hide()
+        elif text == lv.SYMBOL.HOME:
+            self.dro.home()
+            self.hide()
 
     def make_display(self, col, row):
         ta = lv.textarea(self.background)
         ta.set_text("0")
-        ta.set_style_text_align(lv.TEXT_ALIGN.CENTER, lv.PART.MAIN | lv.STATE.DEFAULT)
+        ta.set_style_text_align(lv.TEXT_ALIGN.CENTER, 0)
         ta.set_scrollbar_mode(lv.SCROLLBAR_MODE.OFF)
-        ta.set_style_text_font(self.font, lv.PART.MAIN | lv.STATE.DEFAULT)
-        ta.set_style_bg_color(lv.color_hex(0xe0e0ff), lv.PART.MAIN | lv.STATE.DEFAULT)
-        ta.set_style_radius(5, lv.PART.MAIN | lv.STATE.DEFAULT)
-        ta.set_style_border_width(3, lv.PART.MAIN | lv.STATE.DEFAULT)
-        ta.set_style_border_color(lv.color_hex(0x0), lv.PART.MAIN | lv.STATE.DEFAULT)
+        ta.set_style_text_font(self.font, 0)
+        ta.set_style_bg_color(lv.color_hex(0xe0e0ff), 0)
+        ta.set_style_radius(5, 0)
+        ta.set_style_border_width(3, 0)
+        ta.set_style_border_color(lv.color_hex(0x0), 0)
         ta.set_grid_cell(lv.GRID_ALIGN.STRETCH, col, 2, lv.GRID_ALIGN.STRETCH, row, 1)
         return ta
 
