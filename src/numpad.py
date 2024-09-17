@@ -71,11 +71,13 @@ class Numpad():
         self.button("4", 0, 3)
         self.button("5", 1, 3)
         self.button("6", 2, 3)
+        self.button(lv.SYMBOL.LEFT, 3, 3)
         self.button("Clear", 4, 3)
 
         self.button("7", 0, 4)
         self.button("8", 1, 4)
         self.button("9", 2, 4)
+        self.button(lv.SYMBOL.RIGHT, 3, 4)
         self.button("Get", 4, 4, green)
 
         self.button("+-", 0, 5)
@@ -89,22 +91,27 @@ class Numpad():
         text = label.get_text()
 
         current = self.display.get_text()
+        self.display.add_state(lv.STATE.FOCUSED) 
         if text.isdigit():
             if len(current) < self.max_digits:
                 if current == "0":
                     self.display.set_text(text)
                 else:
-                    self.display.set_text(current + text)
+                    self.display.add_text(text)
         elif text == ".":
             if "." not in self.display.get_text():
-                self.display.set_text(current + ".")
+                self.display.add_text(text)
         elif text == lv.SYMBOL.BACKSPACE:
             if len(self.display.get_text()) == 1:
                 self.display.set_text("0")
             else:
                 self.display.del_char()
                 # self.display.set_text(current[0:-1])
-        elif text == "C":
+        elif text == lv.SYMBOL.LEFT:
+            self.display.cursor_left()
+        elif text == lv.SYMBOL.RIGHT:
+            self.display.cursor_right()
+        elif text == "Clear":
             self.display.set_text("0")
         elif text == "+-":
             if current[0] == "-":
@@ -143,4 +150,5 @@ class Numpad():
         self.axis_label.get_child(0).set_text(dro.axis)
         self.display.set_text("0")
         self.max_digits = max_digits
+        self.display.add_state(lv.STATE.FOCUSED) 
         self.show()
