@@ -33,10 +33,13 @@ try:
     indev_drv.type = lv.INDEV_TYPE.POINTER
     indev_drv.read_cb = SDL.mouse_read
     indev_drv.register()
-    from FluidNCSim import FluidNC
+    from fluidnc_sim import FluidNC
 
-    import uselect
-    import poll
+    try:
+        import uselect
+        import poll
+    except:
+        pass
 except:
     import lv_utils
     import tft_config
@@ -104,63 +107,6 @@ def set_btn_text(state, key, btn):
 
 wco = [0, 0, 0, 0, 0, 0]
 
-class GrblCallback:
-    def __init__(self):
-        pass
-    def update_state(self, state):
-        set_btn_text(state,'stateName', state_name)
-        if has(state, 'wco'):
-            global wco
-            wco = state['wco']
-        if has(state, 'wpos'):
-            for i in range(len(state['wpos'])):
-                dro[i].set(str(state['wpos'][i]))
-        if has(state, 'mpos'):
-            for i in range(len(state['mpos'])):
-                wpos = state['mpos'][i] - wco[i]
-                dro[i].set(str(wpos))
-        if has(state, 'spindleSpeed'):
-            spindle_speed.get_child(0).set_text('S' + str(state['spindleSpeed']))
-        # message
-        # feedrate
-        # spindle
-        # spindleSpeed
-        # ovr
-        # lineNumber
-        # flood
-        # mist
-        # pins
-        print(state)
-    def update_modal(self, modal):
-        print(modal)
-        set_btn_text(modal, 'distance', distance_mode.get_child(0))
-        if has(modal, 'units'):
-            set_units(modal['units'])
-        if has(modal, 'wcs'):
-            set_wcs(modal['wcs'])
-
-    def refresh_files(self):
-        print("Refresh Files")
-        pass
-    def handle_reset(self):
-        print("Grbl Reset")
-        pass
-    def handle_error(self, msg):
-        print("Grbl Error:", msg)
-        pass
-    def handle_ok(self):
-        print("Grbl ok")
-        pass
-    def probe_failed(self, msg):
-        print("Grbl Probe Failed:", msg)
-        pass
-
-grbl_callback = GrblCallback()
-
-from grblclass import GrblHandler
-
-grbl = GrblHandler(grbl_callback)
-
 # 1. Create a display screen. Will need to display the component added to the screen to display
 screen = lv.obj()  # scr====> screen
 fs_drv = lv.fs_drv_t()
@@ -168,17 +114,17 @@ fs_driver.fs_register(fs_drv, 'S')
 try:
     f16 = lv.font_montserrat_16
 except:
-    f16 = lv.font_load("S:montserrat-16.fnt")
+    f16 = lv.font_load("S:font/montserrat-16.fnt")
 try:
     f18 = lv.font_montserrat_18
 except:
-    f18 = lv.font_load("S:montserrat-18.fnt")
+    f18 = lv.font_load("S:font/montserrat-18.fnt")
 try:
     f20 = lv.font_montserrat_20
 except:
-    f20 = lv.font_load("S:montserrat-20.fnt")
-f24 = lv.font_load("S:montserrat-24.fnt")
-f28 = lv.font_load("S:montserrat-28.fnt")
+    f20 = lv.font_load("S:font/montserrat-20.fnt")
+f24 = lv.font_load("S:font/montserrat-24.fnt")
+f28 = lv.font_load("S:font/montserrat-28.fnt")
 screen = lv.scr_act()
 screen.clean()
 # Create screen
@@ -597,30 +543,11 @@ def change_event_cb(e):
     prefix = "Going to directory " if isdir else "Loading file "
     gcode.add_text(prefix + name + '\n')
 
-filenames = [
-    ("..", -1),
-    ("Archives", -1),
-    ("Foo.nc", 1234),
-    ("Barfer.gcode", 20998),
-    ("Engraving.gc", 1234567),
-    ("Monkey.gc", 100000),
-    ("0Prep.gc", 1211),
-    ("1TopCuts.gc", 465),
-    ("2Roundover.gc", 22341),
-    ("3TopShaping.gc", 5268),
-    ("4RodHoles.gc", 834),
-    ("5Finalize.gc", 43670),
-    ("7PreShip.gc", 1003),
-    ("Flatten.gc", 56),
-    ("Test2.gc", 56),
-    ("Test3.gc", 5678),
-    ];
-
 # Set a smaller height to the table. It'll make it scrollable
 filestable.set_size(WIDTH//2, overlay_h)
 # filestable.set_height(overlay_h)
 
-filestable.set_row_cnt(len(filenames))  # Not required but avoids a lot of memory reallocation lv_table_set_set_value
+# filestable.set_row_cnt(len(filenames))  # Not required but avoids a lot of memory reallocation
 filestable.set_col_width(0, 42)
 filestable.set_col_width(1, 230)
 filestable.set_col_width(2, 130)
@@ -634,22 +561,50 @@ filestable.set_style_text_font(f20, lv.PART.ITEMS)
 # Don't make the cell pressed, we will draw something different in the event
 # filestable.remove_style(None, lv.PART.ITEMS | lv.STATE.PRESSED)
 
-for i in range(len(filenames)):
-    file = filenames[i]
-    name = file[0]
-    size = file[1]
-    filestable.set_cell_value(i, 0, lv.SYMBOL.DIRECTORY if size == -1 else lv.SYMBOL.FILE)
-    # filestable.set_cell_value(i, 0, lv.SYMBOL.DIRECTORY)
-    filestable.set_cell_value(i, 1, name)
-    filestable.set_cell_value(i, 2, "" if size == -1 else str(size))
-    # filestable.set_style_height(30, i)
-
-
-# filestable.align(lv.ALIGN.CENTER, 0, -20)
-
 # Add an event callback to apply some custom drawing
 filestable.add_event_cb(draw_event_cb, lv.EVENT.DRAW_PART_BEGIN, None)
 filestable.add_event_cb(change_event_cb, lv.EVENT.VALUE_CHANGED, None)
+
+def onFilesList(files):
+    filestable.set_row_cnt(len(files))  # Preallocate
+    for i in range(len(files)):
+        file = files[i]
+        name = file[0]
+        size = file[1]
+        filestable.set_cell_value(i, 0, lv.SYMBOL.DIRECTORY if size == -1 else lv.SYMBOL.FILE)
+        # filestable.set_cell_value(i, 0, lv.SYMBOL.DIRECTORY)
+        filestable.set_cell_value(i, 1, name)
+        filestable.set_cell_value(i, 2, "" if size == -1 else str(size))
+
+
+# filenames = [
+#     ("..", -1),
+#     ("Archives", -1),
+#     ("Foo.nc", 1234),
+#     ("Barfer.gcode", 20998),
+#     ("Engraving.gc", 1234567),
+#     ("Monkey.gc", 100000),
+#     ("0Prep.gc", 1211),
+#     ("1TopCuts.gc", 465),
+#     ("2Roundover.gc", 22341),
+#     ("3TopShaping.gc", 5268),
+#     ("4RodHoles.gc", 834),
+#     ("5Finalize.gc", 43670),
+#     ("7PreShip.gc", 1003),
+#     ("Flatten.gc", 56),
+#     ("Test2.gc", 56),
+#     ("Test3.gc", 5678),
+#     ];
+# 
+# for i in range(len(filenames)):
+#     file = filenames[i]
+#     name = file[0]
+#     size = file[1]
+#     filestable.set_cell_value(i, 0, lv.SYMBOL.DIRECTORY if size == -1 else lv.SYMBOL.FILE)
+#     # filestable.set_cell_value(i, 0, lv.SYMBOL.DIRECTORY)
+#     filestable.set_cell_value(i, 1, name)
+#     filestable.set_cell_value(i, 2, "" if size == -1 else str(size))
+
 
 # Create screen_cont_jog
 # jog_grid = make_area(screen, 0, 130, WIDTH, 180, 0x80ff80)
@@ -788,6 +743,73 @@ screen.update_layout()
 
 # 4. Displays the contents of the screen object
 lv.scr_load(screen)
+
+import fluidnc_json_parser
+
+fluidnc_json_parser.filesListListener.setCallback(onFilesList)
+# filesLinesListener.setCallback(onFilesLines)
+# macroCfgListener.setCallback(onMacros)
+# macroCfgListener.setCallback(onMacros)
+# macroListListener.setCallback(onMacros)
+# initialListener.setCallback(onError)
+
+class GrblCallback:
+    def __init__(self):
+        pass
+    def update_state(self, state):
+        set_btn_text(state,'stateName', state_name)
+        if has(state, 'wco'):
+            global wco
+            wco = state['wco']
+        if has(state, 'wpos'):
+            for i in range(len(state['wpos'])):
+                dro[i].set(str(state['wpos'][i]))
+        if has(state, 'mpos'):
+            for i in range(len(state['mpos'])):
+                wpos = state['mpos'][i] - wco[i]
+                dro[i].set(str(wpos))
+        if has(state, 'spindleSpeed'):
+            spindle_speed.get_child(0).set_text('S' + str(state['spindleSpeed']))
+        # message
+        # feedrate
+        # spindle
+        # spindleSpeed
+        # ovr
+        # lineNumber
+        # flood
+        # mist
+        # pins
+    def update_modal(self, modal):
+        set_btn_text(modal, 'distance', distance_mode.get_child(0))
+        if has(modal, 'units'):
+            set_units(modal['units'])
+        if has(modal, 'wcs'):
+            set_wcs(modal['wcs'])
+
+    def refresh_files(self):
+        print("Refresh Files")
+        pass
+    def handle_reset(self):
+        print("Grbl Reset")
+        pass
+    def handle_error(self, msg):
+        print("Grbl Error:", msg)
+        pass
+    def handle_ok(self):
+        print("Grbl ok")
+        pass
+    def probe_failed(self, msg):
+        print("Grbl Probe Failed:", msg)
+        pass
+    def handle_json(self, msg):
+        fluidnc_json_parser.parser.parse_line(msg)
+        pass
+
+grbl_callback = GrblCallback()
+
+from grbl_parser import GrblParser
+
+grbl = GrblParser(grbl_callback)
 
 while True:
     if using_SDL:
