@@ -1,11 +1,11 @@
 from json_streaming_parser import JsonStreamingParser
 parser = JsonStreamingParser()
 
-parser_needs_reset = False
+reading_macros = False
+macro_parser = None
 
 def initListener():
     parser.setListener(initialListener)
-    parser_needs_reset = True
 
 def fileinfoSortKey(file):
     # If the file is a directory, prepend a DEL (0x7f) character
@@ -43,7 +43,7 @@ class FilesListListener:
     def key(self, _key):
         self.currentKey = _key
         if _key == "name":
-            self.haveNewFile = True  # Gets reset in endObject()
+            self.haveNewFile = True
 
     def value(self, value):
         if self.currentKey == "name":
@@ -52,10 +52,9 @@ class FilesListListener:
             self.size = int(value)
 
     def endArray(self):
-        # self.fileVector.sort(key=lambda x: fileinfoSortKey(x))
         self.fileVector.sort(key=fileinfoSortKey)
         self.callback(self.fileVector)
-        parser.setListener(initialListener)  # Assuming parser and initialListener are defined elsewhere
+        parser.setListener(initialListener)
 
     def endObject(self):
         if self.haveNewFile:
@@ -72,7 +71,7 @@ class FilesListListener:
 
 filesListListener = FilesListListener()
 
-macros = []  # Assuming this is a list of Macro objects
+macros = []
 
 class MacroListListener():
     def __init__(self):
@@ -269,8 +268,10 @@ preferencesListener = PreferencesListener()
 class FileLinesListener:
     def __init__(self):
         self.inArray = False
-        self.keyIsError = False
-        self.keyIsFirstLine = False
+        self._key = ""
+        self.lines = []
+        self.first_line = 0
+        self.path = ""
 
     def setCallback(self, cb):
         self.callback = cb
@@ -282,16 +283,19 @@ class FileLinesListener:
         pass
 
     def startArray(self):
+        global reading_macros, macro_parser
         if reading_macros:
             reading_macros = False
-            init_macro_parser()
+            macro_parser = JsonStreamingParser()
+            macro_parser.setListener(macroLinesListener)
             return
-        file_lines.clear()
+        self.lines.clear()
         self.inArray = True
 
     def endArray(self):
         self.inArray = False
-        if macro_parser:
+        global macro_parser
+        if macro_parser != None:
             del macro_parser
             macro_parser = None
             parser.setListener(initialListener)
@@ -300,21 +304,23 @@ class FileLinesListener:
         pass
 
     def key(self, _key):
-        if _key == "firstline":
-            self.keyIsFirstLine = True
+        self._key = _key
 
     def value(self, value):
-        if macro_parser:
-            macro_parser_parse_line(value)
+        global macro_parser
+        if macro_parser != None:
+            macro_parser.parse_line(value)
             return
         if self.inArray:
-            file_lines.append(value)
-        if self.keyIsFirstLine:
-            file_first_line = int(value)
+            self.lines.append(value)
+        if self._key == "firstline":
+            self.first_line = int(value)
+        elif self._key == "path":
+            self.path = value
 
     def endObject(self):
         parser.setListener(initialListener)
-        self.callback(file_first_line, file_lines)
+        self.callback(self.first_line, self.lines, self.path)
 
     def endDocument(self):
         pass
@@ -347,6 +353,7 @@ class InitialListener:
 
     def value(self, value):
         if self.currentKey == "path":
+            global reading_macros
             reading_macros = is_file(value, "macrocfg.json")
         elif self.currentKey == "cmd":
             self.cmd = value
@@ -372,12 +379,9 @@ class InitialListener:
         pass
 
     def endObject(self):
-        global parser_needs_reset
-        parser_needs_reset = True
+        pass
 
     def endDocument(self):
-        global parser_needs_reset
-        parser_needs_reset = True
         if self.status != "ok" and self.fileListener:
             self.status = "ok"
             try_next_macro_file(self.fileListener)

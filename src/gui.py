@@ -1,6 +1,7 @@
 import lvgl as lv
 lv.init()
 import fs_driver
+import time
 
 WIDTH = 800
 HEIGHT = 480
@@ -197,22 +198,62 @@ def make_button(text, parent, x, y, w, h, font, cb=None):
 
 from numpad import Numpad
 
-def do_go(e):
-    pass
+def runGCode(e):
+    if loadedFile != None:
+        sendCommand("$SD/Run=" + loadedFile)
 
-def do_stop(e):
-    pass
+# red = lv.palette_main(lv.PALETTE.RED)
+# green = lv.palette_main(lv.PALETTE.GREEN)
+# yellow = lv.palette_lighten(lv.PALETTE.YELLOW, 1)
+red = lv.color_hex(0xff0000)
+green = lv.color_hex(0x00ff00)
+yellow = lv.color_hex(0xffff00)
+gray = lv.palette_lighten(lv.PALETTE.GREY, 2)
 
-def make_run_button(parent, x, y, text, cb):
+def make_run_button(parent, x, y, handler):
     btn = basic_button(parent, x, y, 160, 50, 1, f28)
-    btn.set_style_bg_color(lv.palette_lighten(lv.PALETTE.GREY, 2), MAINDEF)
-    # btn.clear_flag(lv.obj.FLAG.CLICKABLE)
-    label = interior_text(btn, text)
-    btn.add_event_cb(cb, lv.EVENT.CLICKED, None)
+    btn.set_style_bg_color(gray, MAINDEF)
+    btn.clear_flag(lv.obj.FLAG.CLICKABLE)
+    interior_text(btn, "")
+    btn.add_event_cb(handler, lv.EVENT.CLICKED, None)
     return btn
 
-btnStart = make_run_button(run_area, 238, 11, lv.SYMBOL.PLAY, do_go)
-btnStop = make_run_button(run_area, 406, 11, lv.SYMBOL.STOP, do_stop)
+go_cb = None
+def go_event_handler(e):
+    global go_cb
+    if go_cb != None:
+        go_cb()
+    
+stop_cb = None
+def stop_event_handler(e):
+    global stop_cb
+    if stop_cb != None:
+        stop_cb()
+
+btnStart = make_run_button(run_area, 238, 11, go_event_handler)
+btnStop = make_run_button(run_area, 406, 11, stop_event_handler)
+
+def set_left_button(color, text, cb):
+    set_run_button(btnStart, color, text)
+    global go_cb
+    go_cb = cb
+
+def set_right_button(color, text, cb):
+    set_run_button(btnStop, color, text)
+    global stop_cb
+    stop_cb = cb
+
+def set_run_button(btn, color, text):
+    label = btn.get_child(0)
+    label.set_text(text)
+    btn.set_style_bg_color(color, 0)
+    if color != gray:
+        btn.add_flag(lv.obj.FLAG.CLICKABLE)
+    else:
+        btn.clear_flag(lv.obj.FLAG.CLICKABLE)
+
+set_left_button(gray, lv.SYMBOL.PLAY, None)
+set_right_button(gray, lv.SYMBOL.STOP, None)
 
 def make_dropdown(parent, x, y, w, h, name, items, font, arrow):
     obj = lv.dropdown(parent) # screen_ddlist_menu
@@ -265,6 +306,28 @@ def show(obj):
 def hide(obj):
         obj.add_flag(lv.obj.FLAG.HIDDEN)
 
+def unlock():
+    sendCommand('$X')
+
+def requestModes():
+    sendCommand('$G')
+
+def stopGCode():
+    sendRealtimeChar(0x18)
+
+def resumeGCode():
+    sendRealtimeChar(0x7e)
+
+def pauseGCode():
+    sendRealtimeChar(0x21)
+
+def stopAndRecover():
+    stopGCode()
+    # To stop GRBL you send a reset character, which causes some modes
+    # be reset to their default values.  In particular, it sets G21 mode,
+    # which affects the coordinate display and the jog distances.
+    requestModes()
+
 def menu_handler(e):
     obj = e.get_target()
     option = " "*10
@@ -279,9 +342,9 @@ def menu_handler(e):
     elif name == 'Probe':
         pass
     elif name == 'Unlock':
-        sendCommand('$X')
+        unlock(None)
     elif name == 'Reset':
-        sendRealtimeChar(0x18);
+        stopGCode()
 
 ddmenu = make_dropdown(run_area, 681, 11, 111, 50, 'Menu', "Jog\nFiles\nProbe\nUnlock\nReset", f28, False)
 ddmenu.add_event_cb(menu_handler, lv.EVENT.VALUE_CHANGED, None)
@@ -328,6 +391,45 @@ def sendRealtimeChar(code):
 def sendCommand(msg):
     fluidnc.send(msg)
     messages.add_text(msg + '\n')
+
+dirName = "/sd"
+dirLevel = 0
+
+def request_file_list():
+    global dirName
+    sendCommand("$Files/ListGCode=" + dirName)
+
+def dirDown(name):
+    global dirName, dirLevel
+    dirName += "/" + name
+    dirLevel += 1
+    request_file_list()
+    
+def dirUp():
+    global dirName, dirLevel
+    if dirLevel:
+        pos = dirName.rfind('/')
+        if pos != -1:
+            dirName = dirName[0:pos]
+            dirLevel -= 1
+    else:
+        dirLevel = 0
+        dirName = "/sd"
+    request_file_list()
+
+nlines = 10
+def request_file_preview(name, firstline):
+    global nlines
+    lastline = firstline + nlines
+    sendCommand("$File/ShowSome=" + str(firstline) + ":" + str(lastline) + "," + name)
+
+loadedFile = None
+
+def loadFile(name):
+    global loadedFile
+    loadedFile = dirName + '/' + name
+    request_file_preview(loadedFile, 0)
+    setRunControls()
 
 def in_inches():
     return units.get_text() == 'Inch'
@@ -391,12 +493,17 @@ class DRO:
         self.button.set_style_bg_color(lv.color_hex(0xe0e0ff), 0)
     def lowlight(self):
         self.button.set_style_bg_color(self.bg_color, 0)
+    def arm(self, armed):
+        if armed:
+            self.button.add_flag(lv.obj.FLAG.CLICKABLE)
+        else:
+            self.button.clear_flag(lv.obj.FLAG.CLICKABLE)
 
-dro = []
-dro.append(DRO('X', 96, 10, 140, 45))
-dro.append(DRO('Y', 276, 10, 140, 45))
-dro.append(DRO('Z', 458, 10, 140, 45))
-dro.append(DRO('A', 634, 10, 130, 45))
+dros = []
+dros.append(DRO('X', 96, 10, 140, 45))
+dros.append(DRO('Y', 276, 10, 140, 45))
+dros.append(DRO('Z', 458, 10, 140, 45))
+dros.append(DRO('A', 634, 10, 130, 45))
 
 # The text inside a DRO depends on the units mode - G20 or G21,
 # both in terms of the scaling of the value and the number of decimals.
@@ -404,7 +511,7 @@ dro.append(DRO('A', 634, 10, 130, 45))
 # of waiting for a new status report with axis values.
 def reformat_dros(values):
     for i in range(3):
-        dro[i].set(values[i])
+        dros[i].set(values[i])
     
 def set_units(gmode):
     inches = in_inches()
@@ -412,10 +519,12 @@ def set_units(gmode):
         values = linear_dro_values()
         units.set_text('Inch')
         reformat_dros(values)
+        set_jog_selector(gmode)
     elif not inches and gmode == 'G20':
         values = linear_dro_values()
         units.set_text('mm')
         reformat_dros(values)
+        set_jog_selector(gmode)
 
 def set_axis_wco(axis, coord):
     cmd = "G10 L20 P0 " + axis + str(coord)
@@ -512,7 +621,7 @@ def filemenu_handler(e):
     name = option.split('\x00')[0]
     sendCommand("$SD/Run="+name)
 
-def draw_event_cb(e):
+def files_draw_event_cb(e):
     obj = e.get_target()
     dsc = lv.obj_draw_part_dsc_t.__cast__(e.get_param())
     # If the cells are drawn...
@@ -531,17 +640,23 @@ def draw_event_cb(e):
 # filesbox = make_area(files_overlay, 0, 0, WIDTH, overlay_h, 0xff8080)
 filestable = lv.table(files_overlay)
 
-def change_event_cb(e):
+def files_change_event_cb(e):
     obj = e.get_target()
-    row = lv.C_Pointer()
-    col = lv.C_Pointer()
-    obj.get_selected_cell(row, col)
-    isdir = obj.get_cell_value(row.uint_val, 2) == ''
-    name = obj.get_cell_value(row.uint_val, 1)
-    if name == '..':
-        name = "Up"
-    prefix = "Going to directory " if isdir else "Loading file "
-    gcode.add_text(prefix + name + '\n')
+    rowp = lv.C_Pointer()
+    colp = lv.C_Pointer()
+    obj.get_selected_cell(rowp, colp)
+    row = rowp.uint_val
+    col = colp.uint_val
+    if row == 0:
+        return  # Maybe request_files_list() ?
+    isdir = obj.get_cell_value(row, 2) == ''
+    name = obj.get_cell_value(col, 1)
+    if name == '.. (Up)':
+        dirUp()
+    elif isdir:
+        dirDown(name)
+    else:
+        loadFile(name)
 
 # Set a smaller height to the table. It'll make it scrollable
 filestable.set_size(WIDTH//2, overlay_h)
@@ -554,60 +669,37 @@ filestable.set_col_width(2, 130)
 filestable.set_col_cnt(3)
 # filestable.set_style_pad_all(0, 0);
 #filestable.set_style_pad_all(5, lv.PART.ITEMS);
+filestable.set_style_pad_left(3, lv.PART.ITEMS);
+filestable.set_style_pad_right(8, lv.PART.ITEMS);
 filestable.set_style_pad_top(4, lv.PART.ITEMS);
 filestable.set_style_pad_bottom(0, lv.PART.ITEMS);
 filestable.set_style_text_font(f20, lv.PART.ITEMS)
+filestable.add_cell_ctrl(0, 0, lv.table.CELL_CTRL.MERGE_RIGHT)
 
 # Don't make the cell pressed, we will draw something different in the event
 # filestable.remove_style(None, lv.PART.ITEMS | lv.STATE.PRESSED)
 
 # Add an event callback to apply some custom drawing
-filestable.add_event_cb(draw_event_cb, lv.EVENT.DRAW_PART_BEGIN, None)
-filestable.add_event_cb(change_event_cb, lv.EVENT.VALUE_CHANGED, None)
+filestable.add_event_cb(files_draw_event_cb, lv.EVENT.DRAW_PART_BEGIN, None)
+filestable.add_event_cb(files_change_event_cb, lv.EVENT.VALUE_CHANGED, None)
 
 def onFilesList(files):
-    filestable.set_row_cnt(len(files))  # Preallocate
+    global dirLevel, dirName
+    toprows = 2 if dirLevel else 1
+    filestable.set_row_cnt(toprows + len(files))  # Preallocate
+    filestable.set_cell_value(0, 0, "Files in " + dirName)
+    if toprows == 2:
+        filestable.set_cell_value(1, 0, lv.SYMBOL.DIRECTORY)
+        filestable.set_cell_value(1, 1, ".. (Up)")
+        filestable.set_cell_value(1, 2, "")
     for i in range(len(files)):
         file = files[i]
         name = file[0]
         size = file[1]
-        filestable.set_cell_value(i, 0, lv.SYMBOL.DIRECTORY if size == -1 else lv.SYMBOL.FILE)
-        # filestable.set_cell_value(i, 0, lv.SYMBOL.DIRECTORY)
-        filestable.set_cell_value(i, 1, name)
-        filestable.set_cell_value(i, 2, "" if size == -1 else str(size))
+        filestable.set_cell_value(toprows+i, 0, lv.SYMBOL.DIRECTORY if size == -1 else lv.SYMBOL.FILE)
+        filestable.set_cell_value(toprows+i, 1, name)
+        filestable.set_cell_value(toprows+i, 2, "" if size == -1 else str(size))
 
-
-# filenames = [
-#     ("..", -1),
-#     ("Archives", -1),
-#     ("Foo.nc", 1234),
-#     ("Barfer.gcode", 20998),
-#     ("Engraving.gc", 1234567),
-#     ("Monkey.gc", 100000),
-#     ("0Prep.gc", 1211),
-#     ("1TopCuts.gc", 465),
-#     ("2Roundover.gc", 22341),
-#     ("3TopShaping.gc", 5268),
-#     ("4RodHoles.gc", 834),
-#     ("5Finalize.gc", 43670),
-#     ("7PreShip.gc", 1003),
-#     ("Flatten.gc", 56),
-#     ("Test2.gc", 56),
-#     ("Test3.gc", 5678),
-#     ];
-# 
-# for i in range(len(filenames)):
-#     file = filenames[i]
-#     name = file[0]
-#     size = file[1]
-#     filestable.set_cell_value(i, 0, lv.SYMBOL.DIRECTORY if size == -1 else lv.SYMBOL.FILE)
-#     # filestable.set_cell_value(i, 0, lv.SYMBOL.DIRECTORY)
-#     filestable.set_cell_value(i, 1, name)
-#     filestable.set_cell_value(i, 2, "" if size == -1 else str(size))
-
-
-# Create screen_cont_jog
-# jog_grid = make_area(screen, 0, 130, WIDTH, 180, 0x80ff80)
 jog_grid_y = homing_y + homing_h
 jog_grid_h = 172
 jog_grid = make_area(jog_overlay, 0, jog_grid_y, WIDTH, jog_grid_h, 0x80ff80)
@@ -728,7 +820,47 @@ message_h = overlay_h - message_y
 messages = make_message_box(jog_overlay, '', 'Messages', 0, message_y, WIDTH, message_h, 2000, f18)
 # messages = make_message_box(jog_overlay, '', 'Messages', 0, 380-135, 400, 100, 2000, f16)
 gcode_x = WIDTH//2
-gcode = make_message_box(files_overlay, '', 'GCode', gcode_x, 0, WIDTH - gcode_x, overlay_h, 2000, f16)
+gcode_w = WIDTH - gcode_x
+# gcode = make_message_box(files_overlay, '', 'GCode', gcode_x, 0, gcode_w, overlay_h, 2000, f16)
+gcode = lv.table(files_overlay)
+gcode.set_pos(gcode_x, 0)
+gcode.set_size(gcode_w, overlay_h)
+gcode.set_col_width(0, 70)
+gcode.set_col_width(1, gcode_w - 70)
+gcode.set_col_cnt(2)
+gcode.set_style_pad_top(0, lv.PART.ITEMS);
+gcode.set_style_pad_left(3, lv.PART.ITEMS);
+gcode.set_style_pad_right(3, lv.PART.ITEMS);
+gcode.set_style_pad_bottom(0, lv.PART.ITEMS);
+gcode.set_style_text_font(f20, lv.PART.ITEMS)
+gcode.add_cell_ctrl(0, 0, lv.table.CELL_CTRL.MERGE_RIGHT)
+gcode.add_cell_ctrl(0, 0, lv.table.CELL_CTRL.MERGE_RIGHT)
+
+def gcode_draw_event_cb(e):
+    obj = e.get_target()
+    dsc = lv.obj_draw_part_dsc_t.__cast__(e.get_param())
+    # If the cells are drawn...
+    if dsc.part == lv.PART.ITEMS:
+        row = dsc.id //  obj.get_col_cnt()
+        col = dsc.id - row * obj.get_col_cnt()
+        dsc.rect_dsc.outline_pad = 0
+        dsc.rect_dsc.border_width = 0
+        if row != 0 and col == 0:
+            dsc.label_dsc.align = lv.TEXT_ALIGN.RIGHT
+            # print(dir(dsc.label_dsc))
+            dsc.label_dsc.color = lv.palette_main(lv.PALETTE.GREY)
+            # dsc.rect_dsc.bg_color = lv.palette_lighten(lv.PALETTE.GREY, 2)
+
+gcode.add_event_cb(gcode_draw_event_cb, lv.EVENT.DRAW_PART_BEGIN, None)
+
+def onFileLines(first_line, lines, path):
+    # gcode.set_text("")
+    gcode.set_cell_value(0, 0, "GCode" if path == "" else "GCode from " + path)
+    for i in range(len(lines)):
+        # line = str(i+first_line) + " " + lines[i] + "\n"
+        # gcode.add_text(line)
+        gcode.set_cell_value(i+1, 0, str(i+first_line))
+        gcode.set_cell_value(i+1, 1, lines[i])
 
 # kbarea = make_area(screen, 10, 10, 780, 300, 0xffffff)
 # kb = lv.keyboard(kbarea)
@@ -747,27 +879,86 @@ lv.scr_load(screen)
 import fluidnc_json_parser
 
 fluidnc_json_parser.filesListListener.setCallback(onFilesList)
-# filesLinesListener.setCallback(onFilesLines)
-# macroCfgListener.setCallback(onMacros)
-# macroCfgListener.setCallback(onMacros)
-# macroListListener.setCallback(onMacros)
-# initialListener.setCallback(onError)
+fluidnc_json_parser.fileLinesListener.setCallback(onFileLines)
+# fluidnc_json_parser.macroCfgListener.setCallback(onMacros)
+# fluidnc_json_parser.macroCfgListener.setCallback(onMacros)
+# fluidnc_json_parser.macroListListener.setCallback(onMacros)
+# fluidnc_json_parser.initialListener.setCallback(onError)
+
+def set_jog_selector(gmode):
+    pass
+
+def setRunControls():
+    if loadedFile != None:
+        # A GCode file is ready to go
+        set_left_button(green, lv.SYMBOL.PLAY, runGCode)
+        set_right_button(gray, lv.SYMBOL.STOP, None)
+    else:
+        # Can't start because no GCode to run
+        set_left_button(gray, lv.SYMBOL.PLAY, None)
+        set_right_button(gray, lv.SYMBOL.STOP, None)
+
+previous_state = 'Idle'
+startTime = 0
 
 class GrblCallback:
     def __init__(self):
         pass
     def update_state(self, state):
-        set_btn_text(state,'stateName', state_name)
+        canClick = True
+        if has(state, 'stateName'):
+            stateName = state['stateName']
+            state_name.set_text(stateName)
+            canClick = stateName not in ['Run', 'Hold']
+            for dro in dros:
+                dro.arm(canClick)
+            # XXX Switch to run screen?
+            if stateName == 'Sleep':
+                set_left_button(gray, '', None)
+                set_right_button(red, 'Reset', stopAndRecover)
+            elif stateName == 'Alarm':
+                set_left_button(yellow, 'Unlock', unlock);
+                set_right_button(red, 'Reset', stopAndRecover);
+            elif stateName == 'Idle':
+                setRunControls();
+            elif stateName == 'Door1':
+                set_left_button(gray, '', None);
+                set_right_button(red, 'Stop', stopAndRecover);
+            elif stateName in ['Door0', 'Hold']:
+                set_left_button(green, 'Resume', resumeGCode);
+                set_right_button(red, 'Stop', stopAndRecover);
+            elif stateName == 'Run':
+                global previous_state, startTime
+                if previous_state == 'Idle':
+                    startTime = time.time()
+                else:
+                    elapsed = time.time() - startTime
+                    minutes = int(elapsed//60)
+                    seconds = int(elapsed%60)
+                    runtime.set_text("{:d}:{:02d}".format(minutes, seconds))
+                set_left_button(gray, lv.SYMBOL.PLAY, None);
+                set_right_button(red, lv.SYMBOL.PAUSE, pauseGCode);
+            elif stateName in ['Jog', 'Home', 'Run']:
+                set_left_button(gray, lv.SYMBOL.PLAY, None);
+                set_right_button(red, lv.SYMBOL.PAUSE, pauseGCode);
+            elif stateName == 'Check':
+                set_left_button(gray, lv.SYMBOL.PLAY, None);
+                set_right_button(red, lv.SYMBOL.STOP, stopAndRecover);
+            previous_state = stateName
+
+        # XXX account for grbl reporting units
+        factor = 25.4 if in_inches() else 1.0
+
         if has(state, 'wco'):
             global wco
             wco = state['wco']
         if has(state, 'wpos'):
             for i in range(len(state['wpos'])):
-                dro[i].set(str(state['wpos'][i]))
+                dros[i].set(str(state['wpos'][i]))
         if has(state, 'mpos'):
             for i in range(len(state['mpos'])):
                 wpos = state['mpos'][i] - wco[i]
-                dro[i].set(str(wpos))
+                dros[i].set(str(wpos))
         if has(state, 'spindleSpeed'):
             spindle_speed.get_child(0).set_text('S' + str(state['spindleSpeed']))
         # message
@@ -780,17 +971,21 @@ class GrblCallback:
         # mist
         # pins
     def update_modal(self, modal):
-        set_btn_text(modal, 'distance', distance_mode.get_child(0))
+        if has(modal, 'distance'):
+            obj = distance_mode.get_child(0)
+            value = modal['distance']
+            obj.set_text(value)
+            obj.set_style_text_color(lv.color_black() if value == 'G90' else red, 0)
         if has(modal, 'units'):
             set_units(modal['units'])
         if has(modal, 'wcs'):
             set_wcs(modal['wcs'])
 
     def refresh_files(self):
-        print("Refresh Files")
+        request_file_list(dirname)
         pass
     def handle_reset(self):
-        print("Grbl Reset")
+        print('Grbl Reset')
         pass
     def handle_error(self, msg):
         print("Grbl Error:", msg)

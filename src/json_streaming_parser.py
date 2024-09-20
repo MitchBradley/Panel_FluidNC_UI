@@ -36,7 +36,7 @@ class JsonStreamingParser:
         self.unicodeBufferPos = 0
         self.characterCounter = 0
         self.stackPos = 0
-        self.myListener = None
+        # self.myListener = None
         self.buffer = [''] * self.BUFFER_MAX_LENGTH
         self.unicodeEscapeBuffer = [''] * 4
         self.unicodeBuffer = [''] * 4
@@ -159,6 +159,8 @@ class JsonStreamingParser:
                 self.startArray()
             elif c == '{':
                 self.startObject()
+            elif c == ' ':
+                pass
             else:
                 raise Exception("Document must start with object or array.")
         self.characterCounter += 1
@@ -340,3 +342,4 @@ class JsonStreamingParser:
     def endDocument(self):
         self.myListener.endDocument()
         self.state = self.STATE_DONE
+        self.reset()
