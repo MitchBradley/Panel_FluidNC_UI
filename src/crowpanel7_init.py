@@ -87,3 +87,4 @@ TOUCH_DEVICE = I2C.Device(
 )
 
 indev = gt911.GT911(TOUCH_DEVICE)
+indev.enable_input_priority()
