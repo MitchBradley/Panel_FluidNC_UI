@@ -94,7 +94,6 @@ class Numpad():
 
         current = self.display.get_text()
         self.display.add_state(lv.STATE.FOCUSED) 
-        print(self.display.get_cursor_pos())
         if text.isdigit():
             if len(current) < self.max_digits:
                 # The check for cursor_pos == 1 handles the situation
@@ -151,6 +150,10 @@ class Numpad():
         ta.set_style_border_width(1, 0)
         ta.set_style_border_color(lv.color_hex(0x0), 0)
         ta.set_grid_cell(lv.GRID_ALIGN.STRETCH, col, 2, lv.GRID_ALIGN.STRETCH, row, 1)
+        style = lv.style_t()
+        style.init()
+        style.set_border_color(lv.color_black())
+        ta.add_style(style, lv.PART.CURSOR | lv.STATE.FOCUSED)
         return ta
 
     def attach(self, dro, max_digits=255):
