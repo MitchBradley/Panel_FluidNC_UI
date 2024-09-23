@@ -1,4 +1,5 @@
 import lvgl as lv
+import theme
 
 class Numpad():
     def __init__(self, container, button_maker, font):
@@ -15,7 +16,7 @@ class Numpad():
         background.set_pos(70, 114)
         background.set_size(600, 330)
         background.set_scrollbar_mode(lv.SCROLLBAR_MODE.OFF)
-        background.set_style_bg_color(lv.color_hex(0xffc0c0), 0)
+        background.set_style_bg_color(theme.numpad_bg, 0)
         cols = [100, 100, 100, 100, 110, lv.GRID_TEMPLATE_LAST]
         rows = [56, 0, 48, 48, 48, 48, lv.GRID_TEMPLATE_LAST]
 
@@ -31,7 +32,7 @@ class Numpad():
         obj.set_grid_cell(lv.GRID_ALIGN.STRETCH, col, 1, lv.GRID_ALIGN.STRETCH, row, 1)
         obj.set_scrollbar_mode(lv.SCROLLBAR_MODE.OFF)
         if cb:
-            obj.set_style_bg_color(lv.color_white(), 0)
+            obj.set_style_bg_color(theme.bg, 0)
             obj.add_event_cb(cb, lv.EVENT.CLICKED, None)
             obj.set_style_border_width(1, 0)
         else:
@@ -52,10 +53,10 @@ class Numpad():
         self.overlay.add_flag(lv.obj.FLAG.HIDDEN)
 
     def make_axis_label(self, col, row):
-        obj = self.make_basic_button("", col, row, lv.color_black())
+        obj = self.make_basic_button("", col, row, theme.fg)
         return obj
 
-    def button(self, text, col, row, color=lv.color_black()):
+    def button(self, text, col, row, color=theme.fg):
         self.make_basic_button(text, col, row, color, self.button_action)
 
     def make_buttons(self):
@@ -144,15 +145,15 @@ class Numpad():
         ta.set_style_text_align(lv.TEXT_ALIGN.CENTER, 0)
         ta.set_scrollbar_mode(lv.SCROLLBAR_MODE.OFF)
         ta.set_style_text_font(self.font, 0)
-        ta.set_style_text_color(lv.color_black(), 0)
-        ta.set_style_bg_color(lv.color_hex(0xe0e0ff), 0)
+        ta.set_style_text_color(theme.fg, 0)
+        ta.set_style_bg_color(theme.highlight_bg, 0)
         ta.set_style_radius(8, 0)
         ta.set_style_border_width(1, 0)
-        ta.set_style_border_color(lv.color_hex(0x0), 0)
+        ta.set_style_border_color(theme.border_color, 0)
         ta.set_grid_cell(lv.GRID_ALIGN.STRETCH, col, 2, lv.GRID_ALIGN.STRETCH, row, 1)
         style = lv.style_t()
         style.init()
-        style.set_border_color(lv.color_black())
+        style.set_border_color(theme.border_color)
         ta.add_style(style, lv.PART.CURSOR | lv.STATE.FOCUSED)
         return ta
 
