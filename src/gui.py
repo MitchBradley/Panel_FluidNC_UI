@@ -8,91 +8,15 @@ HEIGHT = 480
 
 using_SDL = False
 
+import time
+
 try:
-    import SDL
-    import utime as time
+    import sdl_init
     using_SDL = True
-    SDL.init(w=WIDTH,h=HEIGHT)
-    flush_cb = SDL.monitor_flush
-    # import fs_driver
-    # Register SDL display driver.
-    disp_buf = lv.disp_draw_buf_t()
-    buf1 = bytearray(WIDTH*10)
-    disp_buf.init(buf1, None, len(buf1)//4)
-    # register display driver
-    disp_drv = lv.disp_drv_t()
-    disp_drv.init()
-    disp_drv.draw_buf = disp_buf
-    disp_drv.flush_cb = flush_cb
-    disp_drv.hor_res = WIDTH
-    disp_drv.ver_res = HEIGHT
-    disp_drv.register()
-
-    # Regsiter SDL mouse driver
-    indev_drv = lv.indev_drv_t()
-    indev_drv.init()
-    indev_drv.type = lv.INDEV_TYPE.POINTER
-    indev_drv.read_cb = SDL.mouse_read
-    indev_drv.register()
     from fluidnc_sim import FluidNC
-
-    try:
-        import uselect
-        import poll
-    except:
-        pass
 except:
-    import lv_utils
-    import tft_config
-    import time
-    import gt911
-    from machine import Pin, I2C, WDT
-    # tft drvier
-    tft = tft_config.config()
-    # touch drvier
-    i2c = I2C(1, scl=Pin(20), sda=Pin(19), freq=400000)
-    tp = gt911.GT911(i2c, width=WIDTH, height=HEIGHT)
-    tp.set_rotation(tp.ROTATION_INVERTED)
-    if not lv_utils.event_loop.is_running():
-        event_loop=lv_utils.event_loop()
-        print(event_loop.is_running())
-
-    flush_cb = tft.flush
-    # create a display 0 buffer
-    disp_buf = lv.disp_draw_buf_t()
-    buf1 = bytearray(WIDTH * 50)
-    disp_buf.init(buf1, None, len(buf1) // lv.color_t.__SIZE__)
-    # register display driver
-    disp_drv = lv.disp_drv_t()
-    disp_drv.init()
-    disp_drv.draw_buf = disp_buf
-    disp_drv.flush_cb = flush_cb
-    disp_drv.hor_res = WIDTH
-    disp_drv.ver_res = HEIGHT
-    disp = disp_drv.register()
-    # disp_drv.user_data = {"swap": 0}
-    lv.disp_t.set_default(disp)
-
-    # touch driver init
-    indev_drv = lv.indev_drv_t()
-    indev_drv.init()
-    indev_drv.disp = disp
-    indev_drv.type = lv.INDEV_TYPE.POINTER
-    indev_drv.read_cb = tp.lvgl_read
-    indev = indev_drv.register()
-
-    def bye():
-        WDT(timeout=1000)
-
-    class FluidNC():
-        def __init__(self, reply):
-            self.reply = reply
-
-        def send(self, msg):
-            print(msg)
-
-        def sendRealtimeChar(self, code):
-            print(hex(code))
+    import crowpanel7_init
+    from fluidnc_sim import FluidNC
 
 def fluidnc_input(msg):
     messages.add_text(msg + '\n')
@@ -108,25 +32,26 @@ def set_btn_text(state, key, btn):
 
 wco = [0, 0, 0, 0, 0, 0]
 
-# 1. Create a display screen. Will need to display the component added to the screen to display
-screen = lv.obj()  # scr====> screen
+# Create the screen object that everything else is on top of
+# font_load -> binfont_create
+screen = lv.obj()
 fs_drv = lv.fs_drv_t()
 fs_driver.fs_register(fs_drv, 'S')
 try:
     f16 = lv.font_montserrat_16
 except:
-    f16 = lv.font_load("S:font/montserrat-16.fnt")
+    f16 = lv.binfont_create("S:font/montserrat-16.fnt")
 try:
     f18 = lv.font_montserrat_18
 except:
-    f18 = lv.font_load("S:font/montserrat-18.fnt")
+    f18 = lv.binfont_create("S:font/montserrat-18.fnt")
 try:
     f20 = lv.font_montserrat_20
 except:
-    f20 = lv.font_load("S:font/montserrat-20.fnt")
-f24 = lv.font_load("S:font/montserrat-24.fnt")
-f28 = lv.font_load("S:font/montserrat-28.fnt")
-screen = lv.scr_act()
+    f20 = lv.binfont_create("S:font/montserrat-20.fnt")
+f24 = lv.binfont_create("S:font/montserrat-24.fnt")
+f28 = lv.binfont_create("S:font/montserrat-28.fnt")
+screen = lv.screen_active()
 screen.clean()
 # Create screen
 # screen = lv.obj()
@@ -173,7 +98,7 @@ def basic_style(obj, x, y, w, h, border, font):
     obj.set_style_border_color(lv.color_hex(0x0), MAINDEF)
 
 def basic_button(parent, x, y, w, h, border, font):
-    btn = lv.btn(parent)
+    btn = lv.button(parent)
     basic_style(btn, x, y, w, h, border, font)
     if not border:
        btn.set_style_bg_opa(0, MAINDEF)
@@ -213,7 +138,7 @@ gray = lv.palette_lighten(lv.PALETTE.GREY, 2)
 def make_run_button(parent, x, y, handler):
     btn = basic_button(parent, x, y, 160, 50, 1, f28)
     btn.set_style_bg_color(gray, MAINDEF)
-    btn.clear_flag(lv.obj.FLAG.CLICKABLE)
+    btn.remove_flag(lv.obj.FLAG.CLICKABLE)
     interior_text(btn, "")
     btn.add_event_cb(handler, lv.EVENT.CLICKED, None)
     return btn
@@ -250,7 +175,7 @@ def set_run_button(btn, color, text):
     if color != gray:
         btn.add_flag(lv.obj.FLAG.CLICKABLE)
     else:
-        btn.clear_flag(lv.obj.FLAG.CLICKABLE)
+        btn.remove_flag(lv.obj.FLAG.CLICKABLE)
 
 set_left_button(gray, lv.SYMBOL.PLAY, None)
 set_right_button(gray, lv.SYMBOL.STOP, None)
@@ -301,7 +226,7 @@ def select_menu_option(menu, text):
     menu.set_selected(option_index(menu, text))
 
 def show(obj):
-        obj.clear_flag(lv.obj.FLAG.HIDDEN)
+        obj.remove_flag(lv.obj.FLAG.HIDDEN)
 
 def hide(obj):
         obj.add_flag(lv.obj.FLAG.HIDDEN)
@@ -497,7 +422,7 @@ class DRO:
         if armed:
             self.button.add_flag(lv.obj.FLAG.CLICKABLE)
         else:
-            self.button.clear_flag(lv.obj.FLAG.CLICKABLE)
+            self.button.remove_flag(lv.obj.FLAG.CLICKABLE)
 
 dros = []
 dros.append(DRO('X', 96, 10, 140, 45))
@@ -547,8 +472,8 @@ zeroing_h = 0
 zeroing_area = make_area(jog_overlay, 0, zeroing_y, WIDTH, zeroing_h, 0xc0ffc0)
 
 zeroing_area.set_grid_dsc_array(
-    [84, 78, 80, 78, 80, 78, 80, 72, 72, lv.GRID_TEMPLATE.LAST],
-    [45, lv.GRID_TEMPLATE.LAST],
+    [84, 78, 80, 78, 80, 78, 80, 72, 72, lv.GRID_TEMPLATE_LAST],
+    [45, lv.GRID_TEMPLATE_LAST],
     )
 zeroing_area.set_style_pad_all(3, MAINDEF)
 #zeroing_area.set_style_bg_opa(0, MAINDEF)
@@ -591,8 +516,8 @@ homing_h = 0
 #homing_h = 54
 #homing_area = make_area(jog_overlay, 100, homing_y, WIDTH-100, homing_h, 0xc0ffc0)
 #homing_area.set_grid_dsc_array(
-#    [60, 60, 60, 60, lv.GRID_TEMPLATE.LAST],
-#    [50, lv.GRID_TEMPLATE.LAST],
+#    [60, 60, 60, 60, lv.GRID_TEMPLATE_LAST],
+#    [50, lv.GRID_TEMPLATE_LAST],
 #    )
 #homing_area.set_grid_align(lv.GRID_ALIGN.SPACE_AROUND, lv.GRID_ALIGN.START)
 ## homing_area.set_style_pad_column(100, 0)
@@ -626,8 +551,8 @@ def files_draw_event_cb(e):
     dsc = lv.obj_draw_part_dsc_t.__cast__(e.get_param())
     # If the cells are drawn...
     if dsc.part == lv.PART.ITEMS:
-        row = dsc.id //  obj.get_col_cnt()
-        col = dsc.id - row * obj.get_col_cnt()
+        row = dsc.id //  obj.get_column_count()
+        col = dsc.id - row * obj.get_column_count()
         dsc.rect_dsc.outline_pad = 0
         dsc.rect_dsc.border_width = 0
         if col == 2:
@@ -662,11 +587,11 @@ def files_change_event_cb(e):
 filestable.set_size(WIDTH//2, overlay_h)
 # filestable.set_height(overlay_h)
 
-# filestable.set_row_cnt(len(filenames))  # Not required but avoids a lot of memory reallocation
-filestable.set_col_width(0, 42)
-filestable.set_col_width(1, 230)
-filestable.set_col_width(2, 130)
-filestable.set_col_cnt(3)
+# filestable.set_row_count(len(filenames))  # Not required but avoids a lot of memory reallocation
+filestable.set_column_width(0, 42)
+filestable.set_column_width(1, 230)
+filestable.set_column_width(2, 130)
+filestable.set_column_count(3)
 # filestable.set_style_pad_all(0, 0);
 #filestable.set_style_pad_all(5, lv.PART.ITEMS);
 filestable.set_style_pad_left(3, lv.PART.ITEMS);
@@ -680,13 +605,13 @@ filestable.add_cell_ctrl(0, 0, lv.table.CELL_CTRL.MERGE_RIGHT)
 # filestable.remove_style(None, lv.PART.ITEMS | lv.STATE.PRESSED)
 
 # Add an event callback to apply some custom drawing
-filestable.add_event_cb(files_draw_event_cb, lv.EVENT.DRAW_PART_BEGIN, None)
+# filestable.add_event_cb(files_draw_event_cb, lv.EVENT.DRAW_PART_BEGIN, None)
 filestable.add_event_cb(files_change_event_cb, lv.EVENT.VALUE_CHANGED, None)
 
 def onFilesList(files):
     global dirLevel, dirName
     toprows = 2 if dirLevel else 1
-    filestable.set_row_cnt(toprows + len(files))  # Preallocate
+    filestable.set_row_count(toprows + len(files))  # Preallocate
     filestable.set_cell_value(0, 0, "Files in " + dirName)
     if toprows == 2:
         filestable.set_cell_value(1, 0, lv.SYMBOL.DIRECTORY)
@@ -704,8 +629,8 @@ jog_grid_y = homing_y + homing_h
 jog_grid_h = 172
 jog_grid = make_area(jog_overlay, 0, jog_grid_y, WIDTH, jog_grid_h, 0x80ff80)
 jog_grid.set_grid_dsc_array(
-    [118, 118, 118, 118, 60, 60, 60, 60, lv.GRID_TEMPLATE.LAST],
-    [53, 53, 53, lv.GRID_TEMPLATE.LAST])
+    [118, 118, 118, 118, 60, 60, 60, 60, lv.GRID_TEMPLATE_LAST],
+    [53, 53, 53, lv.GRID_TEMPLATE_LAST])
 jog_grid.set_style_pad_all(3, MAINDEF)
 jog_grid.set_style_pad_row(4, MAINDEF)
 jog_grid.set_style_bg_opa(0, MAINDEF)
@@ -825,9 +750,9 @@ gcode_w = WIDTH - gcode_x
 gcode = lv.table(files_overlay)
 gcode.set_pos(gcode_x, 0)
 gcode.set_size(gcode_w, overlay_h)
-gcode.set_col_width(0, 70)
-gcode.set_col_width(1, gcode_w - 70)
-gcode.set_col_cnt(2)
+gcode.set_column_width(0, 70)
+gcode.set_column_width(1, gcode_w - 70)
+gcode.set_column_count(2)
 gcode.set_style_pad_top(0, lv.PART.ITEMS);
 gcode.set_style_pad_left(3, lv.PART.ITEMS);
 gcode.set_style_pad_right(3, lv.PART.ITEMS);
@@ -841,8 +766,8 @@ def gcode_draw_event_cb(e):
     dsc = lv.obj_draw_part_dsc_t.__cast__(e.get_param())
     # If the cells are drawn...
     if dsc.part == lv.PART.ITEMS:
-        row = dsc.id //  obj.get_col_cnt()
-        col = dsc.id - row * obj.get_col_cnt()
+        row = dsc.id //  obj.get_column_count()
+        col = dsc.id - row * obj.get_column_count()
         dsc.rect_dsc.outline_pad = 0
         dsc.rect_dsc.border_width = 0
         if row != 0 and col == 0:
@@ -851,7 +776,7 @@ def gcode_draw_event_cb(e):
             dsc.label_dsc.color = lv.palette_main(lv.PALETTE.GREY)
             # dsc.rect_dsc.bg_color = lv.palette_lighten(lv.PALETTE.GREY, 2)
 
-gcode.add_event_cb(gcode_draw_event_cb, lv.EVENT.DRAW_PART_BEGIN, None)
+# gcode.add_event_cb(gcode_draw_event_cb, lv.EVENT.DRAW_PART_BEGIN, None)
 
 def onFileLines(first_line, lines, path):
     # gcode.set_text("")
@@ -874,7 +799,7 @@ np = Numpad(screen, make_button, f28)
 screen.update_layout()
 
 # 4. Displays the contents of the screen object
-lv.scr_load(screen)
+lv.screen_load(screen)
 
 import fluidnc_json_parser
 
@@ -1006,16 +931,21 @@ from grbl_parser import GrblParser
 
 grbl = GrblParser(grbl_callback)
 
-while True:
-    if using_SDL:
-        SDL.check()
-        if poll.poll_input(10):
-            grbl.handle_message(poll.get_line())
-    else:
-        msg = input()
-        if input == "quit":
-            break
-        grbl.handle_message(msg)
+import task_handler
+task_handler.TaskHandler()
+
+# while True:
+#     if using_SDL:
+#         import uselect
+#         import poll
+#         SDL.check()
+#         if poll.poll_input(10):
+#             grbl.handle_message(poll.get_line())
+#     else:
+#         msg = input()
+#         if input == "quit":
+#             break
+#         grbl.handle_message(msg)
 
 # ------------------------------ Guard dog to restart ESP32 equipment --start------------------------
 # if using_SDL:

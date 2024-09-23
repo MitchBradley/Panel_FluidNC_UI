@@ -16,8 +16,8 @@ class Numpad():
         background.set_size(600, 330)
         background.set_scrollbar_mode(lv.SCROLLBAR_MODE.OFF)
         background.set_style_bg_color(lv.color_hex(0xffc0c0), 0)
-        cols = [100, 100, 100, 100, 110, lv.GRID_TEMPLATE.LAST]
-        rows = [56, 0, 48, 48, 48, 48, lv.GRID_TEMPLATE.LAST]
+        cols = [100, 100, 100, 100, 110, lv.GRID_TEMPLATE_LAST]
+        rows = [56, 0, 48, 48, 48, 48, lv.GRID_TEMPLATE_LAST]
 
         background.set_grid_dsc_array(cols, rows)
         self.background = background
