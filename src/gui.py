@@ -583,6 +583,8 @@ def files_change_event_cb(e):
         return  # Maybe request_files_list() ?
     isdir = obj.get_cell_value(row, 2) == ''
     name = obj.get_cell_value(col, 1)
+    if name == None or name == '':
+        return
     if name == '.. (Up)':
         dirUp()
     elif isdir:
