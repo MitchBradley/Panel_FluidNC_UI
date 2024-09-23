@@ -88,49 +88,44 @@ f24 = lv.binfont_create("S:font/montserrat-24.fnt")
 f28 = lv.binfont_create("S:font/montserrat-28.fnt")
 screen = lv.screen_active()
 screen.clean()
-# Create screen
-# screen = lv.obj()
-# screen.set_size(WIDTH, HEIGHT)
 
 screen.set_scrollbar_mode(lv.SCROLLBAR_MODE.OFF)
-# Set style for screen, Part: lv.PART.MAIN, State: lv.STATE.DEFAULT.
-MAINDEF = lv.PART.MAIN|lv.STATE.DEFAULT
 
-screen.set_style_bg_opa(0, MAINDEF)
+screen.set_style_bg_opa(0, 0)
 
 def make_area(parent, x, y, w, h, color):
     area = lv.obj(parent)
     area.set_pos(x, y)
     area.set_size(w, h)
     # area.set_scrollbar_mode(lv.SCROLLBAR_MODE.OFF)
-    # area.set_style_border_width(0, MAINDEF)
-    area.set_style_radius(0, MAINDEF)
-    area.set_style_bg_color(color, MAINDEF)
-    area.set_style_pad_all(0, MAINDEF)
-    area.set_style_border_width(0, MAINDEF)
+    # area.set_style_border_width(0, 0)
+    area.set_style_radius(0, 0)
+    area.set_style_bg_color(color, 0)
+    area.set_style_pad_all(0, 0)
+    area.set_style_border_width(0, 0)
     return area
 
 run_area = make_area(screen, 0, 0, WIDTH, 70, theme.run_bg)
 
 def button_font(btn, size):
-    # btn.set_style_text_font(test_font("montserratMedium", size), MAINDEF)
+    # btn.set_style_text_font(test_font("montserratMedium", size), 0)
     pass
 
 def button_bg(btn, color):
-    btn.set_style_bg_color(lv.color_hex(color), MAINDEF)
+    btn.set_style_bg_color(lv.color_hex(color), 0)
 
 def basic_style(obj, x, y, w, h, font):
     obj.set_pos(x, y)
     obj.set_size(w, h)
-    obj.set_style_border_width(theme.border_width, MAINDEF)
-    obj.set_style_radius(theme.radius, MAINDEF)
-    obj.set_style_pad_all(0, MAINDEF)
-    obj.set_style_bg_color(theme.bg, MAINDEF)
-    # obj.set_style_text_font(lv.font_montserrat_16, MAINDEF)
-    obj.set_style_text_font(font, MAINDEF)
-    obj.set_style_text_color(theme.fg, MAINDEF)
-    obj.set_style_text_align(lv.TEXT_ALIGN.CENTER, MAINDEF)
-    obj.set_style_border_color(theme.border_color, MAINDEF)
+    obj.set_style_border_width(theme.border_width, 0)
+    obj.set_style_radius(theme.radius, 0)
+    obj.set_style_pad_all(0, 0)
+    obj.set_style_bg_color(theme.bg, 0)
+    # obj.set_style_text_font(lv.font_montserrat_16, 0)
+    obj.set_style_text_font(font, 0)
+    obj.set_style_text_color(theme.fg, 0)
+    obj.set_style_text_align(lv.TEXT_ALIGN.CENTER, 0)
+    obj.set_style_border_color(theme.border_color, 0)
 
 def basic_button(parent, x, y, w, h, font):
     btn = lv.button(parent)
@@ -161,7 +156,7 @@ def runGCode(e):
 
 def make_run_button(parent, x, y, handler):
     btn = basic_button(parent, x, y, 160, 50, f28)
-    btn.set_style_bg_color(theme.disabled_bg, MAINDEF)
+    btn.set_style_bg_color(theme.disabled_bg, 0)
     btn.remove_flag(lv.obj.FLAG.CLICKABLE)
     interior_text(btn, "")
     btn.add_event_cb(handler, lv.EVENT.CLICKED, None)
@@ -211,7 +206,7 @@ def make_dropdown(parent, x, y, w, h, name, items, font, arrow):
     if not arrow:
         obj.set_symbol(None)
     basic_style(obj, x, y, w, h, font)
-    obj.set_style_pad_all(8, MAINDEF)
+    obj.set_style_pad_all(8, 0)
     # Checked style
     checked = lv.style_t()
     checked.init()
@@ -233,7 +228,7 @@ def make_dropdown(parent, x, y, w, h, name, items, font, arrow):
     default.set_border_side(lv.BORDER_SIDE.FULL)
     default.set_radius(5)
     default.set_bg_color(theme.bg)
-    obj.get_list().add_style(default, MAINDEF)
+    obj.get_list().add_style(default, 0)
     # Scrollbar style
     scrollbar = lv.style_t()
     scrollbar.init()
@@ -301,9 +296,9 @@ ddmenu.add_event_cb(menu_handler, lv.EVENT.VALUE_CHANGED, None)
 def make_label(parent, x, y, w, h, text, font):
     # invisible container
     field = basic_button(parent, x, y, w, h, font)
-    field.set_style_border_width(0, MAINDEF)
-    field.set_style_bg_opa(0, MAINDEF)
-    field.set_style_shadow_width(0, MAINDEF)
+    field.set_style_border_width(0, 0)
+    field.set_style_bg_opa(0, 0)
+    field.set_style_shadow_width(0, 0)
     label = interior_text(field, text)
     return label
 
@@ -503,29 +498,29 @@ zeroing_area.set_grid_dsc_array(
     [84, 78, 80, 78, 80, 78, 80, 72, 72, lv.GRID_TEMPLATE_LAST],
     [45, lv.GRID_TEMPLATE_LAST],
     )
-zeroing_area.set_style_pad_all(3, MAINDEF)
-#zeroing_area.set_style_bg_opa(0, MAINDEF)
-# zeroing_area.set_style_border_width(0, MAINDEF)
+zeroing_area.set_style_pad_all(3, 0)
+#zeroing_area.set_style_bg_opa(0, 0)
+# zeroing_area.set_style_border_width(0, 0)
 
 def make_grid_button(text, container, col, row, cb=None):
     obj = lv.obj(container)
     obj.set_grid_cell(lv.GRID_ALIGN.STRETCH, col, 1, lv.GRID_ALIGN.STRETCH, row, 1)
     obj.set_scrollbar_mode(lv.SCROLLBAR_MODE.OFF)
-    obj.set_style_border_width(1, MAINDEF)
-    obj.set_style_radius(theme.radius, MAINDEF)
-    obj.set_style_border_color(theme.border_color, MAINDEF)
-    obj.set_style_bg_color(theme.bg, MAINDEF)
+    obj.set_style_border_width(1, 0)
+    obj.set_style_radius(theme.radius, 0)
+    obj.set_style_border_color(theme.border_color, 0)
+    obj.set_style_bg_color(theme.bg, 0)
     label = lv.label(obj)
     label.set_text(text)
-    label.set_style_text_font(f28, MAINDEF)
+    label.set_style_text_font(f28, 0)
     label.center()
-    label.set_style_text_color(theme.fg, MAINDEF)
+    label.set_style_text_color(theme.fg, 0)
     if cb:
         obj.add_event_cb(cb, lv.EVENT.CLICKED, None)
     else:
         # Buttons without callbacks are labels without a background
-        obj.set_style_bg_opa(0, lv.PART.MAIN | lv.STATE.DEFAULT)
-        obj.set_style_border_width(0, lv.PART.MAIN | lv.STATE.DEFAULT)
+        obj.set_style_bg_opa(0, 0)
+        obj.set_style_border_width(0, 0)
     return obj
 
 def make_zero_button(text, col):
@@ -635,7 +630,7 @@ filestable.set_style_pad_top(4, lv.PART.ITEMS);
 filestable.set_style_pad_bottom(0, lv.PART.ITEMS);
 filestable.set_style_text_font(f20, lv.PART.ITEMS)
 filestable.set_style_text_color(theme.fg, lv.PART.ITEMS)
-filestable.set_style_bg_color(theme.bg, MAINDEF);
+filestable.set_style_bg_color(theme.bg, 0);
 filestable.add_cell_ctrl(0, 0, lv.table.CELL_CTRL.MERGE_RIGHT)
 
 # Don't make the cell pressed, we will draw something different in the event
@@ -671,10 +666,10 @@ jog_grid = make_area(jog_overlay, 0, jog_grid_y, WIDTH, jog_grid_h, theme.jog_bg
 jog_grid.set_grid_dsc_array(
     [118, 118, 118, 118, 60, 60, 60, 60, lv.GRID_TEMPLATE_LAST],
     [53, 53, 53, lv.GRID_TEMPLATE_LAST])
-jog_grid.set_style_pad_all(3, MAINDEF)
-jog_grid.set_style_pad_row(4, MAINDEF)
-jog_grid.set_style_bg_opa(0, MAINDEF)
-jog_grid.set_style_border_width(0, MAINDEF)
+jog_grid.set_style_pad_all(3, 0)
+jog_grid.set_style_pad_row(4, 0)
+jog_grid.set_style_bg_opa(0, 0)
+jog_grid.set_style_border_width(0, 0)
 
 def get_jog_distance():
     option = bytearray(10)
@@ -761,19 +756,19 @@ def make_message_box(parent, text, placeholder, x, y, w, h, maxlen, font):
     ta.set_one_line(False)
     ta.set_accepted_chars("")
     ta.set_max_length(maxlen)
-    ta.set_style_text_color(theme.fg, MAINDEF)
+    ta.set_style_text_color(theme.fg, 0)
     ta.set_style_text_color(theme.placeholder_fg, lv.PART_TEXTAREA.PLACEHOLDER)
-    ta.set_style_text_font(font, MAINDEF)
-    ta.set_style_text_letter_space(2, MAINDEF)
-    ta.set_style_text_align(lv.TEXT_ALIGN.LEFT, MAINDEF)
-    ta.set_style_bg_color(theme.bg, MAINDEF)
-    ta.set_style_border_width(1, MAINDEF)
-    ta.set_style_border_color(theme.border_color, MAINDEF)
-    ta.set_style_border_side(lv.BORDER_SIDE.FULL, MAINDEF)
-    ta.set_style_pad_top(4, MAINDEF)
-    ta.set_style_pad_right(4, MAINDEF)
-    ta.set_style_pad_left(4, MAINDEF)
-    ta.set_style_radius(theme.radius, MAINDEF)
+    ta.set_style_text_font(font, 0)
+    ta.set_style_text_letter_space(2, 0)
+    ta.set_style_text_align(lv.TEXT_ALIGN.LEFT, 0)
+    ta.set_style_bg_color(theme.bg, 0)
+    ta.set_style_border_width(1, 0)
+    ta.set_style_border_color(theme.border_color, 0)
+    ta.set_style_border_side(lv.BORDER_SIDE.FULL, 0)
+    ta.set_style_pad_top(4, 0)
+    ta.set_style_pad_right(4, 0)
+    ta.set_style_pad_left(4, 0)
+    ta.set_style_radius(theme.radius, 0)
     ta.set_style_bg_color(theme.messages_bg, lv.PART.SCROLLBAR|lv.STATE.DEFAULT)
     ta.set_style_radius(0, lv.PART.SCROLLBAR|lv.STATE.DEFAULT)
     ta.set_scrollbar_mode(lv.SCROLLBAR_MODE.ON)
@@ -793,7 +788,7 @@ gcode.set_size(gcode_w, overlay_h)
 gcode.set_column_width(0, 70)
 gcode.set_column_width(1, gcode_w - 70)
 gcode.set_column_count(2)
-gcode.set_style_bg_color(theme.bg, MAINDEF)
+gcode.set_style_bg_color(theme.bg, 0)
 gcode.set_style_bg_color(theme.bg, lv.PART.ITEMS)
 gcode.set_style_pad_top(0, lv.PART.ITEMS);
 gcode.set_style_pad_left(3, lv.PART.ITEMS);
@@ -841,7 +836,7 @@ def onFileLines(first_line, lines, path):
 # kb = lv.keyboard(kbarea)
 # kb.set_size(780, 300)
 # kb.set_pos(0, 0)
-# kb.set_style_text_font(f24, MAINDEF)
+# kb.set_style_text_font(f24, 0)
 # kb.set_textarea(messages)
 
 np = Numpad(screen, make_button, f28)
