@@ -11,7 +11,7 @@ using_SDL = False
 import time
 
 try:
-    import sdl_init
+    import sdl_init9
     using_SDL = True
     from fluidnc_sim import FluidNC
 except:
@@ -172,10 +172,11 @@ def set_run_button(btn, color, text):
     label = btn.get_child(0)
     label.set_text(text)
     btn.set_style_bg_color(color, 0)
-    if color != gray:
-        btn.add_flag(lv.obj.FLAG.CLICKABLE)
-    else:
-        btn.remove_flag(lv.obj.FLAG.CLICKABLE)
+    # if color != gray:
+    #     btn.add_flag(lv.obj.FLAG.CLICKABLE)
+    # else:
+    #     btn.remove_flag(lv.obj.FLAG.CLICKABLE)
+    btn.update_flag(lv.obj.FLAG.CLICKABLE, color != gray)
 
 set_left_button(gray, lv.SYMBOL.PLAY, None)
 set_right_button(gray, lv.SYMBOL.STOP, None)
@@ -254,7 +255,7 @@ def stopAndRecover():
     requestModes()
 
 def menu_handler(e):
-    obj = e.get_target()
+    obj = e.get_target_obj()
     option = " "*10
     obj.get_selected_str(option, len(option))
     name = option.split('\x00')[0]
@@ -419,10 +420,11 @@ class DRO:
     def lowlight(self):
         self.button.set_style_bg_color(self.bg_color, 0)
     def arm(self, armed):
-        if armed:
-            self.button.add_flag(lv.obj.FLAG.CLICKABLE)
-        else:
-            self.button.remove_flag(lv.obj.FLAG.CLICKABLE)
+        # if armed:
+        #     self.button.add_flag(lv.obj.FLAG.CLICKABLE)
+        # else:
+        #     self.button.remove_flag(lv.obj.FLAG.CLICKABLE)
+        self.button.update_flag(lv.obj.FLAG.CLICKABLE, armed)
 
 dros = []
 dros.append(DRO('X', 96, 10, 140, 45))
@@ -460,7 +462,7 @@ def goto_axis_pos(axis, coord):
     sendCommand(cmd)
 
 def send_zero_command(e):
-    text = e.get_target().get_child(0).get_text()
+    text = e.get_target_obj().get_child(0).get_text()
     if text[1] == '=':
         set_axis_wco(text[0], 0)
     elif text[0] == '>':
@@ -486,6 +488,7 @@ def make_grid_button(text, container, col, row, cb=None):
     obj.set_style_border_width(1, MAINDEF)
     obj.set_style_radius(5, MAINDEF)
     obj.set_style_border_color(lv.color_black(), MAINDEF)
+    obj.set_style_bg_color(lv.color_hex(0xffffff), MAINDEF)
     label = lv.label(obj)
     label.set_text(text)
     label.set_style_text_font(f28, MAINDEF)
@@ -524,7 +527,7 @@ homing_h = 0
 #homing_area.set_style_pad_row(0, 0)
 #
 #def send_homing_command(e):
-#    text = e.get_target().get_child(0).get_text()[1:]
+#    text = e.get_target_obj().get_child(0).get_text()[1:]
 #    home(text)
 #
 #def make_homing_button(axis, col):
@@ -540,7 +543,7 @@ homing_h = 0
 
 
 def filemenu_handler(e):
-    obj = e.get_target()
+    obj = e.get_target_obj()
     option = " "*50
     obj.get_selected_str(option, len(option))
     name = option.split('\x00')[0]
@@ -548,25 +551,29 @@ def filemenu_handler(e):
 
 def files_draw_event_cb(e):
     obj = e.get_target()
-    dsc = lv.obj_draw_part_dsc_t.__cast__(e.get_param())
+    task = e.get_draw_task()
+    dscb = task.draw_dsc
+    base_dsc = lv.draw_dsc_base_t.__cast__(task.draw_dsc)
     # If the cells are drawn...
-    if dsc.part == lv.PART.ITEMS:
-        row = dsc.id //  obj.get_column_count()
-        col = dsc.id - row * obj.get_column_count()
-        dsc.rect_dsc.outline_pad = 0
-        dsc.rect_dsc.border_width = 0
-        if col == 2:
-            dsc.label_dsc.align = lv.TEXT_ALIGN.RIGHT
+    if base_dsc.part == lv.PART.ITEMS:
+        row = base_dsc.id1
+        col = base_dsc.id2
+        label_dsc = task.get_label_dsc()
+        fill_dsc = task.get_fill_dsc()
+        border_dsc = task.get_border_dsc()
+        if border_dsc != None:
+            border_dsc.width = 0
+        if col == 2 and label_dsc != None:
+            label_dsc.align = lv.TEXT_ALIGN.RIGHT
         # Make every 2nd row grayish
-        if (row % 2) == 0:
-            dsc.rect_dsc.bg_color = lv.palette_main(lv.PALETTE.GREY).color_mix(dsc.rect_dsc.bg_color, lv.OPA._10)
-            dsc.rect_dsc.bg_opa = lv.OPA.COVER
+        if (row % 2) == 0 and fill_dsc != None:
+            fill_dsc.color = lv.palette_lighten(lv.PALETTE.GREY, 3)
+            fill_dsc.opa = lv.OPA.COVER
 
-# filesbox = make_area(files_overlay, 0, 0, WIDTH, overlay_h, 0xff8080)
 filestable = lv.table(files_overlay)
 
 def files_change_event_cb(e):
-    obj = e.get_target()
+    obj = e.get_target_obj()
     rowp = lv.C_Pointer()
     colp = lv.C_Pointer()
     obj.get_selected_cell(rowp, colp)
@@ -599,14 +606,19 @@ filestable.set_style_pad_right(8, lv.PART.ITEMS);
 filestable.set_style_pad_top(4, lv.PART.ITEMS);
 filestable.set_style_pad_bottom(0, lv.PART.ITEMS);
 filestable.set_style_text_font(f20, lv.PART.ITEMS)
+filestable.set_style_text_color(lv.color_black(), lv.PART.ITEMS)
+filestable.set_style_bg_color(lv.color_white(), MAINDEF);
 filestable.add_cell_ctrl(0, 0, lv.table.CELL_CTRL.MERGE_RIGHT)
 
 # Don't make the cell pressed, we will draw something different in the event
 # filestable.remove_style(None, lv.PART.ITEMS | lv.STATE.PRESSED)
 
 # Add an event callback to apply some custom drawing
-# filestable.add_event_cb(files_draw_event_cb, lv.EVENT.DRAW_PART_BEGIN, None)
+filestable.add_event_cb(files_draw_event_cb, lv.EVENT.DRAW_TASK_ADDED, None)
+filestable.add_flag(lv.obj.FLAG.SEND_DRAW_TASK_EVENTS);
 filestable.add_event_cb(files_change_event_cb, lv.EVENT.VALUE_CHANGED, None)
+
+filestable.set_cell_value(0, 0, "Files in " + dirName)
 
 def onFilesList(files):
     global dirLevel, dirName
@@ -642,7 +654,7 @@ def get_jog_distance():
     return option.decode("utf-8").rstrip('\0')
 
 def send_jog(e):
-    obj = e.get_target()
+    obj = e.get_target_obj()
     label = obj.get_child(0)
     text = label.get_text()
     feedrate = 1000
@@ -660,7 +672,7 @@ make_jog_button('Y-', 1, 2)
 make_jog_button('Z-', 3, 2)
 
 def set_jog_distance(e):
-    text = e.get_target().get_child(0).get_text()
+    text = e.get_target_obj().get_child(0).get_text()
     select_menu_option(jog_distance, text)
 
 def make_inc_button(text, col, row):
@@ -690,7 +702,7 @@ def set_wcs(new_wcs):
 
 coordinate_systems = "G54\nG55\nG56\nG57\nG58\nG59";
 def wcs_handler(e):
-    obj = e.get_target()
+    obj = e.get_target_obj()
     option = " "*10
     obj.get_selected_str(option, len(option))
     name = option.split('\x00')[0]
@@ -753,6 +765,8 @@ gcode.set_size(gcode_w, overlay_h)
 gcode.set_column_width(0, 70)
 gcode.set_column_width(1, gcode_w - 70)
 gcode.set_column_count(2)
+gcode.set_style_bg_color(lv.color_white(), MAINDEF)
+gcode.set_style_bg_color(lv.color_white(), lv.PART.ITEMS)
 gcode.set_style_pad_top(0, lv.PART.ITEMS);
 gcode.set_style_pad_left(3, lv.PART.ITEMS);
 gcode.set_style_pad_right(3, lv.PART.ITEMS);
@@ -762,21 +776,29 @@ gcode.add_cell_ctrl(0, 0, lv.table.CELL_CTRL.MERGE_RIGHT)
 gcode.add_cell_ctrl(0, 0, lv.table.CELL_CTRL.MERGE_RIGHT)
 
 def gcode_draw_event_cb(e):
-    obj = e.get_target()
-    dsc = lv.obj_draw_part_dsc_t.__cast__(e.get_param())
+    obj = e.get_target_obj()
+    task = e.get_draw_task()
+    dscb = task.draw_dsc
+    base_dsc = lv.draw_dsc_base_t.__cast__(task.draw_dsc)
     # If the cells are drawn...
-    if dsc.part == lv.PART.ITEMS:
-        row = dsc.id //  obj.get_column_count()
-        col = dsc.id - row * obj.get_column_count()
-        dsc.rect_dsc.outline_pad = 0
-        dsc.rect_dsc.border_width = 0
+    if base_dsc.part == lv.PART.ITEMS:
+        row = base_dsc.id1
+        col = base_dsc.id2
+        label_dsc = task.get_label_dsc()
+        fill_dsc = task.get_fill_dsc()
+        border_dsc = task.get_border_dsc()
+        if border_dsc != None:
+            border_dsc.width = 0
         if row != 0 and col == 0:
-            dsc.label_dsc.align = lv.TEXT_ALIGN.RIGHT
-            # print(dir(dsc.label_dsc))
-            dsc.label_dsc.color = lv.palette_main(lv.PALETTE.GREY)
-            # dsc.rect_dsc.bg_color = lv.palette_lighten(lv.PALETTE.GREY, 2)
+            if label_dsc != None:
+                label_dsc.align = lv.TEXT_ALIGN.RIGHT
+            if fill_dsc != None:
+                fill_dsc.color = lv.palette_main(lv.PALETTE.GREY)
 
-# gcode.add_event_cb(gcode_draw_event_cb, lv.EVENT.DRAW_PART_BEGIN, None)
+gcode.add_event_cb(gcode_draw_event_cb, lv.EVENT.DRAW_TASK_ADDED, None)
+gcode.add_flag(lv.obj.FLAG.SEND_DRAW_TASK_EVENTS);
+
+gcode.set_cell_value(0, 0, "GCode")
 
 def onFileLines(first_line, lines, path):
     # gcode.set_text("")

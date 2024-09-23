@@ -31,7 +31,9 @@ class Numpad():
         obj.set_grid_cell(lv.GRID_ALIGN.STRETCH, col, 1, lv.GRID_ALIGN.STRETCH, row, 1)
         obj.set_scrollbar_mode(lv.SCROLLBAR_MODE.OFF)
         if cb:
+            obj.set_style_bg_color(lv.color_white(), 0)
             obj.add_event_cb(cb, lv.EVENT.CLICKED, None)
+            obj.set_style_border_width(1, 0)
         else:
             obj.set_style_bg_opa(0, 0)
             obj.set_style_border_width(0, 0)
@@ -44,7 +46,7 @@ class Numpad():
         return obj
 
     def show(self):
-        self.overlay.clear_flag(lv.obj.FLAG.HIDDEN)
+        self.overlay.remove_flag(lv.obj.FLAG.HIDDEN)
 
     def hide(self):
         self.overlay.add_flag(lv.obj.FLAG.HIDDEN)
@@ -86,7 +88,7 @@ class Numpad():
         self.button("Cancel", 4, 5, red)
         
     def button_action(self, e):
-        obj=e.get_target() 
+        obj=e.get_target_obj() 
         label = obj.get_child(0)
         text = label.get_text()
 
@@ -143,9 +145,10 @@ class Numpad():
         ta.set_style_text_align(lv.TEXT_ALIGN.CENTER, 0)
         ta.set_scrollbar_mode(lv.SCROLLBAR_MODE.OFF)
         ta.set_style_text_font(self.font, 0)
+        ta.set_style_text_color(lv.color_black(), 0)
         ta.set_style_bg_color(lv.color_hex(0xe0e0ff), 0)
-        ta.set_style_radius(5, 0)
-        ta.set_style_border_width(3, 0)
+        ta.set_style_radius(8, 0)
+        ta.set_style_border_width(1, 0)
         ta.set_style_border_color(lv.color_hex(0x0), 0)
         ta.set_grid_cell(lv.GRID_ALIGN.STRETCH, col, 2, lv.GRID_ALIGN.STRETCH, row, 1)
         return ta
