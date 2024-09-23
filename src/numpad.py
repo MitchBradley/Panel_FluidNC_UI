@@ -12,7 +12,7 @@ class Numpad():
         overlay.set_scrollbar_mode(lv.SCROLLBAR_MODE.OFF)
         self.overlay = overlay
         background = lv.obj(overlay)
-        background.set_pos(100, 114)
+        background.set_pos(70, 114)
         background.set_size(600, 330)
         background.set_scrollbar_mode(lv.SCROLLBAR_MODE.OFF)
         background.set_style_bg_color(lv.color_hex(0xffc0c0), 0)
