@@ -467,12 +467,12 @@ def set_units(gmode):
         values = linear_dro_values()
         units.set_text('Inch')
         reformat_dros(values)
-        set_jog_selector(gmode)
+        set_inc_buttons(gmode)
     elif not inches and gmode == 'G20':
         values = linear_dro_values()
         units.set_text('mm')
         reformat_dros(values)
-        set_jog_selector(gmode)
+        set_inc_buttons(gmode)
 
 def set_axis_wco(axis, coord):
     cmd = "G10 L20 P0 " + axis + str(coord)
@@ -699,22 +699,33 @@ def set_jog_distance(e):
     select_menu_option(jog_distance, text)
 
 def make_inc_button(text, col, row):
-    return make_grid_button(text, jog_grid, col, row, set_jog_distance)
+    btn = make_grid_button(text, jog_grid, col, row, set_jog_distance)
+    btn.get_child(0).set_style_text_font(f24, 0)
+    return btn
 
-inc_00 = make_inc_button('.01', 4, 0)
-inc_10 = make_inc_button( '.1', 5, 0)
-inc_20 = make_inc_button(  '1', 6, 0)
-inc_30 = make_inc_button( '10', 7, 0)
+# G20 mode uses cols 0..3, while G21 mode uses cols 1..4
+jog_increments = (
+    (".001", ".01", ".1", "1", "10"),
+    (".003", ".03", ".3", "3", "30"),
+    (".005", ".05", ".5", "5", "50")
+)
+jog_buttons = [
+    [None, None, None, None],
+    [None, None, None, None],
+    [None, None, None, None]
+]
 
-inc_01 = make_inc_button('.03', 4, 1)
-inc_11 = make_inc_button( '.3', 5, 1)
-inc_21 = make_inc_button(  '3', 6, 1)
-inc_31 = make_inc_button( '30', 7, 1)
+for i in range(len(jog_buttons)):
+    for j in range(len(jog_buttons[0])):
+        text = jog_increments[i][j+1]
+        jog_buttons[i][j] = make_inc_button(text, j+4, i)
 
-inc_02 = make_inc_button('.05', 4, 2)
-inc_12 = make_inc_button( '.5', 5, 2)
-inc_22 = make_inc_button(  '5', 6, 2)
-inc_32 = make_inc_button( '50', 7, 2)
+def set_inc_buttons(gmode):
+    offset = 0 if gmode == "G20" else 1
+    for i in range(len(jog_buttons)):
+        for j in range(len(jog_buttons[0])):
+            text = jog_increments[i][j+offset]
+            jog_buttons[i][j].get_child(0).set_text(text)
 
 # Create screen_label_distance_mode
 # distance_mode = make_label(jog_grid, 20, 10, 100, 50, "G90", 30)
@@ -854,9 +865,6 @@ fluidnc_json_parser.fileLinesListener.setCallback(onFileLines)
 # fluidnc_json_parser.macroCfgListener.setCallback(onMacros)
 # fluidnc_json_parser.macroListListener.setCallback(onMacros)
 # fluidnc_json_parser.initialListener.setCallback(onError)
-
-def set_jog_selector(gmode):
-    pass
 
 def setRunControls():
     if loadedFile != None:

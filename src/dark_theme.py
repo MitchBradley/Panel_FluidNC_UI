@@ -1,7 +1,7 @@
 import lvgl as lv
 
 border_width = 1
-radius = 5
+radius = 8
 
 red = lv.color_hex(0xff0000)
 green = lv.color_hex(0x00ff00)
