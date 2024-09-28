@@ -645,7 +645,7 @@ filestable.set_style_pad_left(3, lv.PART.ITEMS);
 filestable.set_style_pad_right(8, lv.PART.ITEMS);
 filestable.set_style_pad_top(4, lv.PART.ITEMS);
 filestable.set_style_pad_bottom(0, lv.PART.ITEMS);
-filestable.set_style_text_font(f24, lv.PART.ITEMS)
+filestable.set_style_text_font(f28, lv.PART.ITEMS)
 filestable.set_style_text_color(theme.fg, lv.PART.ITEMS)
 filestable.set_style_bg_color(theme.bg, 0);
 filestable.add_cell_ctrl(0, 0, lv.table.CELL_CTRL.MERGE_RIGHT)
