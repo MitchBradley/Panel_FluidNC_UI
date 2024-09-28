@@ -10,8 +10,10 @@ using_SDL = False
 try:
     import sdl_init9
     using_SDL = True
+    from fluidnc_sim import FluidNC
 except:
     import crowpanel7_init
+    from fluidnc_uart import FluidNC
 
 # red = lv.palette_main(lv.PALETTE.RED)
 # green = lv.palette_main(lv.PALETTE.GREEN)
@@ -50,13 +52,18 @@ except:
 # # theme.set_parent(th_act)
 # lvdisplay.set_theme(theme)
 
-from fluidnc_sim import FluidNC
 
-
-def fluidnc_input(msg):
-    messages.add_text(msg + '\n')
-
-fluidnc = FluidNC(fluidnc_input)
+def add_message(line):
+    messages.set_cursor_pos(0x7fff)  # Set to end
+    maxlen = messages.get_max_length()
+    if maxlen:
+        pos = messages.get_cursor_pos()
+        if pos + len(line) + 1 >= maxlen:
+            messages.set_cursor_pos(0)  # Set to beginning
+            for i in range(1000):       # Make some space
+                messages.del_char()
+                messages.set_cursor_pos(0x7fff)  # Set to end
+    messages.add_text(line + '\n')
 
 def has(state, key):
     return key in state and state[key] != None
@@ -150,7 +157,7 @@ def make_button(text, parent, x, y, w, h, font, cb=None):
 
 from numpad import Numpad
 
-def runGCode(e):
+def runGCode():
     if loadedFile != None:
         sendCommand("$SD/Run=" + loadedFile)
 
@@ -257,13 +264,16 @@ def requestModes():
     sendCommand('$G')
 
 def stopGCode():
-    sendRealtimeChar(0x18)
+    sendRealtimeChar('\x18')
 
 def resumeGCode():
-    sendRealtimeChar(0x7e)
+    sendRealtimeChar('~')
 
 def pauseGCode():
-    sendRealtimeChar(0x21)
+    sendRealtimeChar('!')
+
+def requestStatusReport():
+    sendRealtimeChar('?')
 
 def stopAndRecover():
     stopGCode()
@@ -286,7 +296,7 @@ def menu_handler(e):
     elif name == 'Probe':
         pass
     elif name == 'Unlock':
-        unlock(None)
+        unlock()
     elif name == 'Reset':
         stopGCode()
 
@@ -331,18 +341,18 @@ select_overlay('jog')
 def clicked_dro(e, label):
     np.attach(label, 9)
 
-def sendRealtimeChar(code):
-    messages.add_text('Sending ' + hex(code) + '\n')
-    fluidnc.sendRealtimeChar(code)
+def sendRealtimeChar(c):
+    add_message('>' + c)
+    fluidnc.sendRealtimeChar(c)
 
 def sendCommand(msg):
+    # add_message(">" + msg)
     fluidnc.send(msg)
-    messages.add_text(msg + '\n')
 
 dirName = "/sd"
 dirLevel = 0
 
-def request_file_list():
+def requestFileList():
     global dirName
     sendCommand("$Files/ListGCode=" + dirName)
 
@@ -350,7 +360,7 @@ def dirDown(name):
     global dirName, dirLevel
     dirName += "/" + name
     dirLevel += 1
-    request_file_list()
+    requestFileList()
     
 def dirUp():
     global dirName, dirLevel
@@ -362,10 +372,16 @@ def dirUp():
     else:
         dirLevel = 0
         dirName = "/sd"
-    request_file_list()
+    requestFileList()
 
 nlines = 10
-def request_file_preview(name, firstline):
+def requestFilePreview(name, firstline):
+    # gcode.add_cell_ctrl(0, 0, lv.table.CELL_CTRL.MERGE_RIGHT)
+    gcode.set_cell_value(0, 0, "Get")
+    gcode.set_cell_value(0, 1, name)
+    for i in range(1,gcode.get_row_count()):
+        gcode.set_cell_value(i, 0, "")
+        gcode.set_cell_value(i, 1, "")
     global nlines
     lastline = firstline + nlines
     sendCommand("$File/ShowSome=" + str(firstline) + ":" + str(lastline) + "," + name)
@@ -375,7 +391,7 @@ loadedFile = None
 def loadFile(name):
     global loadedFile
     loadedFile = dirName + '/' + name
-    request_file_preview(loadedFile, 0)
+    requestFilePreview(loadedFile, 0)
     setRunControls()
 
 def in_inches():
@@ -391,7 +407,7 @@ def is_rotary(axis):
 def linear_dro_values():
     values = []
     for i in range(3):
-        fval = float(dro[i].get())
+        fval = float(dros[i].get())
         if in_inches():
             fval *= 25.4
         values.append(fval)
@@ -465,12 +481,12 @@ def set_units(gmode):
     inches = in_inches()
     if inches and gmode == 'G21':
         values = linear_dro_values()
-        units.set_text('Inch')
+        units.set_text('mm')
         reformat_dros(values)
         set_inc_buttons(gmode)
     elif not inches and gmode == 'G20':
         values = linear_dro_values()
-        units.set_text('mm')
+        units.set_text('Inch')
         reformat_dros(values)
         set_inc_buttons(gmode)
 
@@ -599,11 +615,12 @@ def files_change_event_cb(e):
     colp = lv.C_Pointer()
     obj.get_selected_cell(rowp, colp)
     row = rowp.uint_val
-    col = colp.uint_val
+    # col = colp.uint_val
     if row == 0:
-        return  # Maybe request_files_list() ?
+        requestFileList()
+        return
     isdir = obj.get_cell_value(row, 2) == ''
-    name = obj.get_cell_value(col, 1)
+    name = obj.get_cell_value(row, 1)
     if name == None or name == '':
         return
     if name == '.. (Up)':
@@ -628,9 +645,10 @@ filestable.set_style_pad_left(3, lv.PART.ITEMS);
 filestable.set_style_pad_right(8, lv.PART.ITEMS);
 filestable.set_style_pad_top(4, lv.PART.ITEMS);
 filestable.set_style_pad_bottom(0, lv.PART.ITEMS);
-filestable.set_style_text_font(f20, lv.PART.ITEMS)
+filestable.set_style_text_font(f24, lv.PART.ITEMS)
 filestable.set_style_text_color(theme.fg, lv.PART.ITEMS)
 filestable.set_style_bg_color(theme.bg, 0);
+filestable.add_cell_ctrl(0, 0, lv.table.CELL_CTRL.MERGE_RIGHT)
 filestable.add_cell_ctrl(0, 0, lv.table.CELL_CTRL.MERGE_RIGHT)
 
 # Don't make the cell pressed, we will draw something different in the event
@@ -647,6 +665,8 @@ def onFilesList(files):
     global dirLevel, dirName
     toprows = 2 if dirLevel else 1
     filestable.set_row_count(toprows + len(files))  # Preallocate
+    filestable.add_cell_ctrl(0, 0, lv.table.CELL_CTRL.MERGE_RIGHT)
+    filestable.add_cell_ctrl(0, 0, lv.table.CELL_CTRL.MERGE_RIGHT)
     filestable.set_cell_value(0, 0, "Files in " + dirName)
     if toprows == 2:
         filestable.set_cell_value(1, 0, lv.SYMBOL.DIRECTORY)
@@ -788,7 +808,7 @@ def make_message_box(parent, text, placeholder, x, y, w, h, maxlen, font):
 
 message_y = jog_grid_y + jog_grid_h
 message_h = overlay_h - message_y
-messages = make_message_box(jog_overlay, '', 'Messages', 0, message_y, WIDTH, message_h, 2000, f18)
+messages = make_message_box(jog_overlay, '', 'Messages', 0, message_y, WIDTH, message_h, 20000, f18)
 # messages = make_message_box(jog_overlay, '', 'Messages', 0, 380-135, 400, 100, 2000, f16)
 gcode_x = WIDTH//2
 gcode_w = WIDTH - gcode_x
@@ -796,9 +816,9 @@ gcode_w = WIDTH - gcode_x
 gcode = lv.table(files_overlay)
 gcode.set_pos(gcode_x, 0)
 gcode.set_size(gcode_w, overlay_h)
-gcode.set_column_width(0, 70)
-gcode.set_column_width(1, gcode_w - 70)
 gcode.set_column_count(2)
+gcode.set_column_width(0, 80)
+gcode.set_column_width(1, gcode_w - 80)
 gcode.set_style_bg_color(theme.bg, 0)
 gcode.set_style_bg_color(theme.bg, lv.PART.ITEMS)
 gcode.set_style_pad_top(0, lv.PART.ITEMS);
@@ -806,8 +826,8 @@ gcode.set_style_pad_left(3, lv.PART.ITEMS);
 gcode.set_style_pad_right(3, lv.PART.ITEMS);
 gcode.set_style_pad_bottom(0, lv.PART.ITEMS);
 gcode.set_style_text_font(f20, lv.PART.ITEMS)
-gcode.add_cell_ctrl(0, 0, lv.table.CELL_CTRL.MERGE_RIGHT)
-gcode.add_cell_ctrl(0, 0, lv.table.CELL_CTRL.MERGE_RIGHT)
+# gcode.add_cell_ctrl(0, 0, lv.table.CELL_CTRL.MERGE_RIGHT)
+# gcode.add_cell_ctrl(0, 0, lv.table.CELL_CTRL.MERGE_RIGHT)
 
 def gcode_draw_event_cb(e):
     obj = e.get_target_obj()
@@ -826,17 +846,21 @@ def gcode_draw_event_cb(e):
         if row != 0 and col == 0:
             if label_dsc != None:
                 label_dsc.align = lv.TEXT_ALIGN.RIGHT
-            if fill_dsc != None:
-                fill_dsc.color = lv.palette_main(lv.PALETTE.GREY)
+                label_dsc.color = theme.gray
+            # if fill_dsc != None:
+            #     fill_dsc.color = lv.palette_main(lv.PALETTE.GREY)
 
 gcode.add_event_cb(gcode_draw_event_cb, lv.EVENT.DRAW_TASK_ADDED, None)
 gcode.add_flag(lv.obj.FLAG.SEND_DRAW_TASK_EVENTS);
 
 gcode.set_cell_value(0, 0, "GCode")
+gcode.set_cell_value(0, 1, "Preview")
 
 def onFileLines(first_line, lines, path):
     # gcode.set_text("")
-    gcode.set_cell_value(0, 0, "GCode" if path == "" else "GCode from " + path)
+    # gcode.add_cell_ctrl(0, 0, lv.table.CELL_CTRL.MERGE_RIGHT)
+    gcode.set_cell_value(0, 0, "GCode")
+    gcode.set_cell_value(0, 1, "Preview" if path == "" else ("from " + path))
     for i in range(len(lines)):
         # line = str(i+first_line) + " " + lines[i] + "\n"
         # gcode.add_text(line)
@@ -916,6 +940,9 @@ class GrblCallback:
                     runtime.set_text("{:d}:{:02d}".format(minutes, seconds))
                 set_left_button(None, lv.SYMBOL.PLAY, None);
                 set_right_button(red, lv.SYMBOL.PAUSE, pauseGCode);
+            elif stateName == 'Home':
+                set_left_button(None, lv.SYMBOL.PLAY, None);
+                set_right_button(red, lv.SYMBOL.STOP, stopAndRecover);
             elif stateName in ['Jog', 'Home', 'Run']:
                 set_left_button(None, lv.SYMBOL.PLAY, None);
                 set_right_button(red, lv.SYMBOL.PAUSE, pauseGCode);
@@ -936,9 +963,12 @@ class GrblCallback:
         if has(state, 'mpos'):
             for i in range(len(state['mpos'])):
                 wpos = state['mpos'][i] - wco[i]
-                dros[i].set(str(wpos))
-        if has(state, 'spindleSpeed'):
-            spindle_speed.get_child(0).set_text('S' + str(state['spindleSpeed']))
+                try:
+                    dros[i].set(str(wpos))
+                except:
+                    pass  # In case there are too many axes
+        # if has(state, 'spindleSpeed'):
+        #    spindle_speed.get_child(0).set_text('S' + str(state['spindleSpeed']))
         # message
         # feedrate
         # spindle
@@ -960,7 +990,7 @@ class GrblCallback:
             set_wcs(modal['wcs'])
 
     def refresh_files(self):
-        request_file_list(dirname)
+        requestFileList()
         pass
     def handle_reset(self):
         print('Grbl Reset')
@@ -969,7 +999,6 @@ class GrblCallback:
         print("Grbl Error:", msg)
         pass
     def handle_ok(self):
-        print("Grbl ok")
         pass
     def probe_failed(self, msg):
         print("Grbl Probe Failed:", msg)
@@ -987,8 +1016,24 @@ grbl = GrblParser(grbl_callback)
 import task_handler
 task_handler.TaskHandler()
 
-# while using_SDL:
-#     pass
+
+
+fluidnc = FluidNC()
+sendCommand('')  # Empty command to flush junk
+sendRealtimeChar('\x11')  # XON to enable software flow control
+sendRealtimeChar('\x0c')  # Ctrl-L to disable echoing
+requestStatusReport()
+requestFileList()
+
+while True:
+    if using_SDL:
+        SDL.check()
+    while fluidnc.ready():
+        msg = fluidnc.get_line()
+        if len(msg):
+            if not grbl.handle_message(msg):
+                add_message(msg)
+    time.sleep_ms(1)
 
 # while True:
 #     if using_SDL:
@@ -1002,22 +1047,3 @@ task_handler.TaskHandler()
 #         if input == "quit":
 #             break
 #         grbl.handle_message(msg)
-
-# ------------------------------ Guard dog to restart ESP32 equipment --start------------------------
-# if using_SDL:
-#     while SDL.check():
-#         time.sleep_ms(5)
-# else:
-#     try:
-#         from machine import WDT
-#         # wdt = WDT(timeout=8000)  # enable it with a timeout of 2s
-#         print("Hint: Press Ctrl+C to end the program")
-#         while True:
-#             # wdt.feed()
-#             time.sleep(0.1)
-#     except KeyboardInterrupt as ret:
-#         print("The program stopped running, ESP32 has restarted...")
-#         #tft.deinit()
-#         #WDT(timeout=500)
-#         #time.sleep(10)
-#         # ------------------------------ Guard dog to restart ESP32 equipment --stop-------------------------

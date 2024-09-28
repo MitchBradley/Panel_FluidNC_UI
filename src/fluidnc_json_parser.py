@@ -317,6 +317,7 @@ class FileLinesListener:
             self.first_line = int(value)
         elif self._key == "path":
             self.path = value
+        self._key = ""
 
     def endObject(self):
         parser.setListener(initialListener)

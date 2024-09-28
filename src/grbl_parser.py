@@ -24,6 +24,7 @@ class GrblParser:
             {'name': 'flood', 'values': ["M8"]}, # Also M9, handled separately
             {'name': 'parking', 'values': ["M56"]}
         ]
+        self.is_probing = False
 
     def grbl_parse_status(self, response):
         grbl = {
@@ -160,30 +161,33 @@ class GrblParser:
     def handle_message(self, msg):
         if msg.startswith('<'):
             self.grbl_process_status(msg)
-            return
+            return True
         if msg.startswith('[GC:'):
             self.grbl_get_modal(msg)
-            return
+            return True
         if msg.startswith('[MSG: Files changed]'):
             self.callback.refresh_files()
-            return
+            return True
         if msg.startswith('ok'):
             self.callback.handle_ok()
-            return
+            return True
         if msg.startswith('[PRB:'):
             self.grbl_get_probe_result(msg)
-            return
+            return True
         if msg.startswith('[MSG:'):
-            return
+            return False
         if msg.startswith('[JSON:'):
             self.callback.handle_json(msg[6:-1])
-            return
+            return True
         if msg.startswith('error:'):
             self.callback.handle_error(msg)
+            return True
         if msg.startswith('ALARM:') or msg.startswith('Hold:') or msg.startswith('Door:'):
             if self.is_probing:
                 self.callback.probe_failed(msg)
-            return
+                return True
+            return False
         if msg.startswith('Grbl '):
             self.callback.handle_reset()
-            return
+            return True
+        return False

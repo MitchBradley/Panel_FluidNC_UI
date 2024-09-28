@@ -1,18 +1,28 @@
-class POLL:
-    def __init__(self, input_devs):
-        self._in = input_devs
+class FluidNC():
+    def __init__(self):
+        from machine import UART
         self.line = ""
         self.pos = -1
-    def ready(self, ms):
+        self.uart = UART(1, 1000000, rx=44, tx=43, flow=4)
+        print(self.uart)
+
+    def send(self, msg):
+        self.uart.write(msg)
+        self.uart.write("\n")
+
+    def sendRealtimeChar(self, c):
+        self.uart.write(c)
+
+    def ready(self):
         if self.pos != -1:
             return True
         self.pos = self.line.find('\n')
         if self.pos != -1:
             return True
-        n = self._in[0].any()
+        n = self.uart.any()
         if n == 0:
             return False
-        by = self._in[0].read(n)
+        by = self.uart.read(n)
         #print(type(by))
         #if type(by) == type(b'a'):
         #    print("Decoding")
@@ -31,6 +41,7 @@ class POLL:
             else:
                 self.line += ch
         return self.pos != -1
+
     def get_line(self):
         retline = self.line[:self.pos]
         self.line = self.line[self.pos+1:]
