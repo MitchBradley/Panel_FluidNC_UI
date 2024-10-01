@@ -1,3 +1,6 @@
+# Parses messages from GRBL/FluidNC, calling various methods in the callback
+# object that is passed to the init method.
+
 class GrblParser:
     def __init__(self, callback):
         self.callback = callback
@@ -174,6 +177,9 @@ class GrblParser:
         if msg.startswith('[PRB:'):
             self.grbl_get_probe_result(msg)
             return True
+        if msg.startswith('[MSG:RST]'):
+            self.callback.handle_hard_reset()
+            return True
         if msg.startswith('[MSG:'):
             return False
         if msg.startswith('[JSON:'):
@@ -188,6 +194,6 @@ class GrblParser:
                 return True
             return False
         if msg.startswith('Grbl '):
-            self.callback.handle_reset()
+            self.callback.handle_soft_reset()
             return True
         return False

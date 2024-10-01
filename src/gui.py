@@ -1,3 +1,5 @@
+# FluidNC UI for an Elecrow CrowPanel 7" HMI display
+
 import lvgl as lv
 lv.init()
 import fs_driver
@@ -8,16 +10,13 @@ HEIGHT = 480
 
 using_SDL = False
 try:
-    import sdl_init9
+    import sdl.sdl_init
     using_SDL = True
-    from fluidnc_sim import FluidNC
+    from sdl.fluidnc_sdl import FluidNC
 except:
     import crowpanel7_init
     from fluidnc_uart import FluidNC
 
-# red = lv.palette_main(lv.PALETTE.RED)
-# green = lv.palette_main(lv.PALETTE.GREEN)
-# yellow = lv.palette_lighten(lv.PALETTE.YELLOW, 1)
 red = lv.color_hex(0xff0000)
 green = lv.color_hex(0x00ff00)
 yellow = lv.color_hex(0xffff00)
@@ -33,25 +32,6 @@ except:
         import dark_theme as theme
     except:
         import light_theme as theme
-
-# # theme = lv.theme_theme_get()
-# # lvdisp = lv.display_t.__cast__(theme.disp)
-# lvdisplay = lv.display_get_default()
-# theme= lv.theme_t()
-# style = lv.style_t()
-# style.init()
-# style.set_bg_color(lv.palette_lighten(lv.PALETTE.RED, 3))
-# theme.color_primary.red = 255
-# theme.color_secondary.green = 255
-# def apply_cb(self, th, obj):
-#     print(th, obj.get_class())
-#     if obj.get_class() == lv.btn_class:
-#         obj.add_style(style, 0)
-# theme.set_apply_cb(apply_cb)
-# # th_act = lv.theme_get_from_obj(lv.screen_active())
-# # theme.set_parent(th_act)
-# lvdisplay.set_theme(theme)
-
 
 def add_message(line):
     messages.set_cursor_pos(0x7fff)  # Set to end
@@ -272,8 +252,58 @@ def resumeGCode():
 def pauseGCode():
     sendRealtimeChar('!')
 
-def requestStatusReport():
+def milliseconds():
+    return time.ticks_ms()
+
+starting = True
+disconnect_ms = 0
+next_ping_ms = 0
+
+# If we haven't heard from FluidNC in 4 seconds for some other reason,
+# send a status report request.
+ping_interval_ms = 4000
+
+# If we haven't heard from FluidNC in 6 seconds for any reason, declare
+# FluidNC unresponsive.  After a ping, FluidNC has 2 seconds to respond.
+disconnect_interval_ms = 6000
+
+def request_status_report():
+    sendRealtimeChar('\x11')  # XON to enable software flow control
+    sendRealtimeChar('\x0c')  # Ctrl-L to disable echoing
     sendRealtimeChar('?')
+    global next_ping_ms
+    next_ping_ms = milliseconds() + ping_interval_ms
+
+def set_disconnected_state():
+    state_name.set_text('N/C')
+    for dro in dros:
+        dro.arm(False)
+    set_left_button(None, '', None)
+    set_right_button(None, '', None)
+    global next_ping_ms
+    next_ping_ms = milliseconds() + ping_interval_ms
+
+def fnc_is_connected():
+    global next_ping_ms, disconnect_ms, starting
+    now = milliseconds()
+    if starting:
+        starting      = False
+        disconnect_ms = now + (disconnect_interval_ms - ping_interval_ms)
+        request_status_report()  # sets next_ping_ms
+        return False
+    if time.ticks_diff(now, disconnect_ms) >= 0:
+        next_ping_ms  = now + ping_interval_ms
+        disconnect_ms = now + disconnect_interval_ms
+        return False
+    if time.ticks_diff(now, next_ping_ms) >= 0:
+        request_status_report()
+    return True
+
+def update_rx_time():
+    now       = milliseconds()
+    global next_ping_time, disconnect_ms
+    next_ping_ms  = now + ping_interval_ms
+    disconnect_ms = now + disconnect_interval_ms
 
 def stopAndRecover():
     stopGCode()
@@ -312,7 +342,7 @@ def make_label(parent, x, y, w, h, text, font):
     label = interior_text(field, text)
     return label
 
-state_name = make_label(run_area, 10, 10, 220, 50, 'Idle', f28) # screen_label_state
+state_name = make_label(run_area, 10, 10, 220, 50, 'N/C', f28) # screen_label_state
 runtime = make_label(run_area, 579, 10, 92, 50, '0:00', f28) # screen_label_runtime
 
 dro_area = make_area(screen, 0, 70, WIDTH, 65, theme.dro_bg)
@@ -342,7 +372,7 @@ def clicked_dro(e, label):
     np.attach(label, 9)
 
 def sendRealtimeChar(c):
-    add_message('>' + c)
+    # add_message('>' + c)
     fluidnc.sendRealtimeChar(c)
 
 def sendCommand(msg):
@@ -900,7 +930,7 @@ def setRunControls():
         set_left_button(None, lv.SYMBOL.PLAY, None)
         set_right_button(None, lv.SYMBOL.STOP, None)
 
-previous_state = 'Idle'
+previous_state = 'N/C'
 startTime = 0
 
 class GrblCallback:
@@ -992,8 +1022,11 @@ class GrblCallback:
     def refresh_files(self):
         requestFileList()
         pass
-    def handle_reset(self):
+    def handle_soft_reset(self):
         print('Grbl Reset')
+        pass
+    def handle_hard_reset(self):
+        set_disconnected_state()
         pass
     def handle_error(self, msg):
         print("Grbl Error:", msg)
@@ -1016,14 +1049,12 @@ grbl = GrblParser(grbl_callback)
 import task_handler
 task_handler.TaskHandler()
 
-
-
-fluidnc = FluidNC()
+fluidnc = FluidNC(update_rx_time)
 sendCommand('')  # Empty command to flush junk
-sendRealtimeChar('\x11')  # XON to enable software flow control
-sendRealtimeChar('\x0c')  # Ctrl-L to disable echoing
-requestStatusReport()
+request_status_report()
 requestFileList()
+
+set_disconnected_state()
 
 while True:
     if using_SDL:
@@ -1033,17 +1064,6 @@ while True:
         if len(msg):
             if not grbl.handle_message(msg):
                 add_message(msg)
+    if not fnc_is_connected():
+        set_disconnected_state()
     time.sleep_ms(1)
-
-# while True:
-#     if using_SDL:
-#         import uselect
-#         import poll
-#         SDL.check()
-#         if poll.poll_input(10):
-#             grbl.handle_message(poll.get_line())
-#     else:
-#         msg = input()
-#         if input == "quit":
-#             break
-#         grbl.handle_message(msg)

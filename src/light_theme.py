@@ -1,3 +1,4 @@
+# Light color theme for CrowPanel FluidNC Tablet UI.
 import lvgl as lv
 
 border_width = 1

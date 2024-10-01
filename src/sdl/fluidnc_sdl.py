@@ -2,11 +2,12 @@ import sys
 import uselect
 
 class FluidNC():
-    def __init__(self):
+    def __init__(self,time_cb):
         self._in = sys.stdin
         self.poller = uselect.poll()
         self.poller.register(self._in, uselect.POLLIN)
         self.line = ""
+        self._time_cb = time_cb
 
     def send(self, msg):
         print(msg)
@@ -17,6 +18,7 @@ class FluidNC():
     def ready(self):
         if self.poller.poll(0):
             ch = self._in.read(1)
+            self._time_cb()
             if ch == '\x0c':
                 self.poller.unregister(self._in)
                 # sys.exit(0)

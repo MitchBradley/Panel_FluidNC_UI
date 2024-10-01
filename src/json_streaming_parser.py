@@ -1,3 +1,7 @@
+# JSON parser that receives input character by character, calling methods
+# in a "listener" class when JSON elements have been recognized.  This
+# eliminates the need to allocate memory for a complete JSON document.
+
 # Based on https://github.com/MitchBradley/json-streaming-parser.git
 # which in turn was based on https://github.com/squix78/json-streaming-parser
 # Converted to Python with the help of ChatGPT

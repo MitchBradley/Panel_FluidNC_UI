@@ -1,3 +1,7 @@
+# Number entry overlay.  Enter a number then use it to set the position
+# of an axis or move to a position.  This is typically attached to a DRO
+# so touching the DRO brings up the number overlay.
+
 import lvgl as lv
 import theme
 

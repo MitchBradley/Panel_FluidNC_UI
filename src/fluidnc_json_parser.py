@@ -1,3 +1,13 @@
+# Handle various forms of JSON-encoded messages from FluidNC, including:
+# File Lists like
+#  {"files":[ {"name":"filename", "size"}, ... ], "path": "dirname"}
+# File lines like
+#  {"file_lines":[ "Line", "Another", ... ], "firstline": 0, "path": "dirname"}
+# WebUI2 macrocfg.json like
+#  {"cmd": "$File/SendJSON", "argument":"macrocfg.json", <complicated>}
+# WebUI3 preferences.json like
+#  {"cmd": "$File/SendJSON", "argument":"preferences.json", <complicated>}
+
 from json_streaming_parser import JsonStreamingParser
 parser = JsonStreamingParser()
 
