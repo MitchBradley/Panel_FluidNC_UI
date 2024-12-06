@@ -5,7 +5,7 @@ I2C_BUS = I2C.Bus(
     host=1,
     scl=20,
     sda=19,
-    freq=400000,
+    freq=100000,
     use_locks=False
 )
 

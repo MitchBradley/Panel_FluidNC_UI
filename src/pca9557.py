@@ -17,22 +17,18 @@ class PCA9557():
 
     def read(self, reg):
         """Read 8-bit register"""
-        self.i2c.try_lock()
         self.i2c.writeto(self.addr, reg.to_bytes(1, 'big'))
 
         self.i2c.readfrom_into(self.addr, self.resultbuf)
         val = self.resultbuf[0]
 
-        self.i2c.unlock()
         return val
 
 
     def write(self, reg, val):
         """Write 8-bit register"""
         cmd = bytes((reg, val))
-        self.i2c.try_lock()
         self.i2c.writeto(self.addr, cmd)
-        self.i2c.unlock()
 
 
     def output(self, val):
