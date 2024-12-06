@@ -41,6 +41,13 @@ class PCA9557():
             self.write(REG_OUT, val)
             self.cached_out = val
 
+    def setDirection(self, val):
+        """Set direction register"""
+        self.write(REG_DIR, val)
+
+    def setPolarity(self, val):
+        """Set polarity register"""
+        self.write(REG_INV, val)
 
     def setbits(self, mask, do_set):
         """Bitmask write to ouput port"""

@@ -8,8 +8,6 @@ from micropython import const
 import lcd_bus
 import lvgl as lv
 import rgb_display
-from i2c import I2C
-import gt911
 
 _WIDTH = const(800)
 _HEIGHT = const(480)
@@ -71,20 +69,4 @@ display.init()
 display.set_backlight(100)
 # display.set_rotation(lv.DISPLAY_ROTATION._90)
 
-# For reference, the I2C IRQ is on pin 38
-I2C_BUS = I2C.Bus(
-    host=1,
-    scl=20,
-    sda=19,
-    freq=400000,
-    use_locks=False
-)
-
-TOUCH_DEVICE = I2C.Device(
-    I2C_BUS,
-    dev_id=gt911.I2C_ADDR,
-    reg_bits=gt911.BITS
-)
-
-indev = gt911.GT911(TOUCH_DEVICE)
-indev.enable_input_priority()
+import init_touch
