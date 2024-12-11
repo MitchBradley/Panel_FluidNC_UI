@@ -1,4 +1,5 @@
-if ["$PORT" = ""]; then
+#!/bin/sh
+if test "$PORT" = ""; then
   echo "Usage: PORT=/dev/ttyUSB0 ./write_vfs.sh"
   exit 1
 fi
