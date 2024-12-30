@@ -322,6 +322,7 @@ def menu_handler(e):
     elif name == 'Jog':
         select_overlay('jog')
     elif name == 'Files':
+        requestFileList()
         select_overlay('files')
     elif name == 'Probe':
         pass
