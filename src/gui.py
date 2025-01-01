@@ -243,6 +243,18 @@ def unlock():
 def requestModes():
     sendCommand('$G')
 
+# Basic probe functionality with fixed values for now, need to make this editable via
+# a dialog box or something similar to when clicking on the DROs.
+def probe():
+    sendCommand('G91')
+    sendCommand('G38.2 Z-100 F100')
+    sendCommand('G90')
+    sendCommand('G10 L20 P1 Z9')
+    sendCommand('G91')
+    sendCommand('G1 Z5')
+    sendCommand('G90')
+    
+
 def stopGCode():
     sendRealtimeChar('\x18')
 
@@ -324,7 +336,7 @@ def menu_handler(e):
     elif name == 'Files':
         select_overlay('files')
     elif name == 'Probe':
-        pass
+        probe()
     elif name == 'Unlock':
         unlock()
     elif name == 'Reset':
