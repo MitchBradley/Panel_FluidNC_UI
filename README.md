@@ -1,4 +1,53 @@
-# FluidNC Tablet UI for 7" ESP32 Display
+# FluidNC 7" Touch Display
+
+![panel](doc/panel-fluidnc.png)
+
+## Overview
+Touch display for FluidNC that enables you to operate your machine independently without being connected to a PC, Mac etc.
+
+The display is based on the tablet plugin from the FluidNC WebUI and adapted to run on the 7" display from Elecrow.
+
+<br>
+
+## Features
+
+
+
+<br>
+
+## Parts
+
+### Display
+
+### Interface boards
+
+### Case
+
+<br>
+
+## Installation
+**[Installation guide](doc/installation.md)**
+
+## Usage
+**[User guide](doc/usage.md)**
+
+
+
+<br>
+<br>
+<br>
+
+---
+
+Updated: Feb. 2025
+
+---
+
+
+<!--
+
+
+
 
 ## Resources
 
@@ -17,3 +66,5 @@ partition-table.bin at 0x8000
 bootloader.bin at 0
 
 (Adafruit ESPTool)[https://adafruit-esptool.glitch.me]
+
+-->
