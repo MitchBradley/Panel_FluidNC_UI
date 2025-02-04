@@ -327,9 +327,11 @@ def menu_handler(e):
     elif name == 'Probe':
         pass
     elif name == 'Unlock':
-        unlock()
+        select_overlay('jog')  #Switch back to Jog screen
+        unlock()               #Send unlock to FluidNC
     elif name == 'Reset':
-        stopGCode()
+        select_overlay('jog')  #Switch back to Jog screen
+        stopGCode()            #Send reset to FluidNC
 
 ddmenu = make_dropdown(run_area, 681, 11, 111, 50, 'Menu', "Jog\nFiles\nProbe\nUnlock\nReset", f28, False)
 ddmenu.add_event_cb(menu_handler, lv.EVENT.VALUE_CHANGED, None)
