@@ -3,20 +3,13 @@
 ![panel](doc/panel-fluidnc.png)
 
 ## Overview
-Touch display for FluidNC that enables you to operate your machine independently without being connected to a PC, Mac etc.
+Touch display for FluidNC that enables you to operate your machine without being connected to a PC, Mac etc. The display features digital readout (DRO) as well as status messages in real time. You can perform operations like Jogging, Probing and running jobs from the SD-Card. 
 
 The display is based on the tablet plugin from the FluidNC WebUI and adapted to run on the 7" display from Elecrow.
 
-<br>
-
-## Features
-
-
-
-<br>
 
 ## Parts
-The display is designed to use the same interface boards as the pendant, they offer protection from EMC/EMI without compromising update speed of the display. This also means you need a controller board that has a module socket for pendant interfaces.
+The display is designed to use the same interface boards as the pendant, the boards offer protection from EMC/EMI without compromising update speed of the display. This also means you need a controller board that has a module socket for pendant interfaces.
 
 ### Display & interface boards
 **Display:** Elecrow 7" touch display with a builtin ESP32, Crowpanel 7.0". You can get this with or without an acrylic case depending on your use case. See below for options regarding cases.
@@ -55,12 +48,15 @@ Did you only buy the display and are looking for a full case then perhaps this d
 
 <br>
 
-## Installation
+## Installation & Usage
+
 **[Installation guide](doc/installation.md)**
 
-## Usage
+
 **[User guide](doc/usage.md)**
 
+
+<br>
 
 ## Bonus tips
 
