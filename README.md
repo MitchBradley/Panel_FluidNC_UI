@@ -20,31 +20,38 @@ The display is designed to use the same interface boards as the pendant, they of
 
 ### Display & interface boards
 **Display:** Elecrow 7" touch display with a builtin ESP32, Crowpanel 7.0". You can get this with or without an acrylic case depending on your use case. See below for options regarding cases.
+
 [Elecrow Crowpanel 7"](https://www.elecrow.com/esp32-display-7-inch-hmi-display-rgb-tft-lcd-touch-screen-support-lvgl.html)
 
 
-**Interface boards:** Fluiddial display module and fluiddial wiring kit are sold separately, you need one of each.
+**Interface boards:** Fluiddial display module and fluiddial wiring kit are sold separately, you need one of each and can purchase them from Elecrom together with the display. Wires needed to connect fluiddial module to display are included.
+
 https://www.elecrow.com/fluiddial-rj12-wiring-kit.html
 https://www.elecrow.com/fluidnc-rj12-pendant-display-module.html
 
-**RJ12 Cable:** To connect the two modules, you need a 6 pin cable with RJ12 connectors in both ends to connect the display with FluidNC. These can be sourced from multiple vendors, here an example from :
-[Aliexpress](https://www.aliexpress.com/w/wholesale-rj12-cable-6p6c.html)
+**RJ12 Cable:** To connect the display to your FLuidNC controller using the two modules, you need a 6 pin cable with RJ12 connectors in both ends. Cable lengths up to 2 meters has been tested successfully, cable can most likely be longer, we have just not verified this yet. Cables can be sourced from multiple vendors, here an example from :
+
+https://www.aliexpress.com/w/wholesale-rj12-cable-6p6c.html
 
 ### FluidNC controller boards
-Your FluidNC controller board must have a module socket for pendant interfaces. Below are examples of boards with module socket:
+Your FluidNC controller board must have a module socket for pendant interfaces. Below are a few examples of boards with module socket. 
 
-https://www.elecrow.com/6-pack-cnc-controller-for-external-stepper-drivers.html
+For a full list of boards pls. check -> [FluidNC Wiki - Existing hardware](http://wiki.fluidnc.com/en/hardware/existing_hardware)
+
+
 https://www.elecrow.com/6x-cnc-controller-for-fluidnc.html
 https://www.elecrow.com/4x-cnc-controller-integrated-esp32-and-tmc2209.html
-https://www.elecrow.com/tmc2209-pen-laser-fluidnc-cnc-controller.html
 
-For a full list of boards pls. check -> [Existing hardware on FluidNC Wiki](http://wiki.fluidnc.com/en/hardware/existing_hardware)
 
 
 ### Case
-A couple of options exists, if you bought the acrylic case from Elecrow, then a stand might be option for you: [Thingiverse](https://www.thingiverse.com/thing:6859400)
+A couple of options exists, if you bought the acrylic case together with the display from Elecrow, then this stand might be an option for you: 
 
-Should you want a full case then this design could an option: [Link to Bart's case](http://unknown.link)
+[Thingiverse - Elecrow display Stand](https://www.thingiverse.com/thing:6859400)
+
+Did you only buy the display and are looking for a full case then perhaps this design could an option for you: 
+
+[Fusion 360 - Crow7 case](https://a360.co/4jIbk0T)
 
 <br>
 
@@ -55,6 +62,9 @@ Should you want a full case then this design could an option: [Link to Bart's ca
 **[User guide](doc/usage.md)**
 
 
+## Bonus tips
+
+When you buy [interface modules and controllers via Elecrow](https://www.elecrow.com/store/BartDring), you are supporting the team developing FluidNC.
 
 <br>
 <br>
